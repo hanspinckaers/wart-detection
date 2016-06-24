@@ -1,18 +1,21 @@
  
+Run python.py for wart detection.
+ 
 - OpenCV 3.1
 - Python 2.7.11
 
 ### Installation on Mac:
 
 
-brew reinstall libpng --universal
-brew reinstall freetype --universal
-PYTHON_CONFIGURE_OPTS="--enable-shared --enable-unicode=ucs2"  pyenv install 2.7.11 
-install virtualenv
-copy cv2.so
-pip install numpy
-pip install matplotlib 
+- brew reinstall libpng --universal
+- brew reinstall freetype --universal
+- PYTHON_CONFIGURE_OPTS="--enable-shared --enable-unicode=ucs2"  pyenv install 2.7.11 
+- install virtualenv
+- copy cv2.so
+- pip install numpy
+- pip install matplotlib 
 
+```
 // should global python be 2.7.11?
 brew install opencv3
 // This puts 2 files namely, cv.py and cv2.so in /usr/local/lib/python2.7/site-packages
@@ -37,3 +40,4 @@ install youcompleteme
 brew install pyenv
 (weet niet of enable-shared nodig is)
 PYTHON_CONFIGURE_OPTS="--enable-shared --enable-unicode=ucs2"  pyenv install 2.7.11 
+```
