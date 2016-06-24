@@ -1,5 +1,6 @@
-OpenCV 3.1
-Python 2.7.11
+ 
+- OpenCV 3.1
+- Python 2.7.11
 
 ### Installation on Mac:
 
