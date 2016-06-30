@@ -7,9 +7,9 @@ Info:
 K = Gaussian Kernel in 1 dimension
 h = scaling factor (size of window)
 """
+from __future__ import division
 import numpy as np
 import math
-from __future__ import division
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 
@@ -40,7 +40,7 @@ vec = [1,2,3,4,5,7,8,9,10,
 vec = sorted(vec)
 
 #Save figures
-with PdfPages('C:\Users\ymejia\Desktop\GitHub\wart-detection\gaussian_kernel_1dim.pdf') as pp:    
+with PdfPages('gaussian_kernel_1dim.pdf') as pp:    
     #For different window sizes, compute density function
     for h in [3, 5, 10, 20, 40]:    
         y_vec = [f(x, vec, h) for x in vec]
