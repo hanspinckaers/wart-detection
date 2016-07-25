@@ -1,3 +1,92 @@
+      #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+    #gray = np.zeros((gray.shape[0], gray.shape[1])) # init 2D numpy array
+
+    #def weightedAverage(pixel):
+    #     return 0.000*pixel[0] + 0.500*pixel[1] + 0.500*pixel[2]
+
+    ## get row number
+    #for rownum in range(len(img)):
+    #    for colnum in range(len(img[rownum])):
+    #        gray[rownum][colnum] = weightedAverage(img[rownum][colnum])
+
+ 
+    # watershed on contours
+
+    for c in contours:
+        # center of contour
+        M = cv2.moments(c)
+	cX = int(M["m10"] / M["m00"])
+	cY = int(M["m01"] / M["m00"])
+
+        cv2.circle(marker_image, (cX, cY), 15, (255, 255, 255), -1)
+
+    cv2.imshow("marker_image", marker_image)
+
+    img_watershed = img.copy()
+
+    # noise removal
+    kernel = np.ones((30,30), np.uint8)
+     
+     # sure background area
+    sure_bg = cv2.dilate(marker_image, kernel,iterations=6)
+     
+    # Finding unknown region
+    #sure_fg = np.uint8(marker_image)
+    unknown = cv2.subtract(sure_bg,marker_image)
+
+    # Marker labelling
+    ret, markers = cv2.connectedComponents(sure_fg)
+     
+    # Add one to all labels so that sure background is not 0, but 1
+    markers = markers+1
+     
+    # Now, mark the region of unknown with zero
+    markers[unknown==255] = 0
+    
+    blur = cv2.cvtColor(blur, cv2.COLOR_GRAY2BGR)
+    markers = cv2.watershed(blur, markers)
+    img_watershed[markers == -1] = [255,0,0]
+
+    # circles = cv2.HoughCircles(canny, cv2.HOUGH_GRADIENT, 1, minDist=10, param1=35, param2=30,minRadius=10,maxRadius=100)
+
+#     if circles is not None:
+# 	# convert the (x, y) coordinates and radius of the circles to integers
+# 	circles = np.round(circles[0, :]).astype("int")
+#  
+# 	# loop over the (x, y) coordinates and radius of the circles
+# 	for (x, y, r) in circles:
+#             # draw the circle in the output image, then draw a rectangle
+#             # corresponding to the center of the circle
+#             cv2.circle(s2, (x, y), r, (0, 255, 0), 4)
+#             cv2.rectangle(s2, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
+#  
+# 	# show the output image
+# 	cv2.imshow("output", s2) 
+
+
+    # gray = equalizeHistWithMask(r, mask)
+
+    # gray = np.zeros((blur.shape[0], blur.shape[1])) # init 2D numpy array
+
+    # def weightedAverage(pixel):
+    #     return 0.000*pixel[0] + 0.000*pixel[1] + 1.000*pixel[2]
+
+    # # get row number
+    # for rownum in range(len(blur)):
+    #     for colnum in range(len(blur[rownum])):
+    #         gray[rownum][colnum] = weightedAverage(blur[rownum][colnum])
+
+    # gray = np.uint8(gray)
+    
+    # gray = cv2.cvtColor(blur, cv2.COLOR_BGR2GRAY)
+    # equ = cv2.equalizeHist(gray)
+    # gray[np.where(mask_erosion==0)] = 0
+    # ret,normalized_dark = cv2.threshold(gray,90,255,cv2.THRESH_BINARY_INV)
+    # kernel = np.ones((3,3),np.uint8)
+    # normalized_dark = cv2.dilate(normalized_dark,kernel,iterations=1)
+
+
 def min_values_in_range(arr, r_l, r_u, r_v):
 in 
 #        if np.equal(color, fetched).all(1).any():
