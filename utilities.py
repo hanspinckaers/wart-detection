@@ -2,7 +2,10 @@ import scipy.cluster.hierarchy as hac
 from hierarchical_tweaked import AgglomerativeClusteringTreeMatrix
 from sklearn.feature_extraction.image import grid_to_graph
 import numpy as np
+# import pudb
 import cv2
+from scipy.ndimage import measurements
+import math
 
 
 # function to hierarchical cluster image
@@ -20,7 +23,7 @@ def segment_hclustering_sklearn(image, image_name):
 
     linkage_matrix = np.column_stack((ward.children_, ward.distance, ward.n_desc))
     max_distance = np.amax(ward.distance)
-    clusters = hac.fcluster(linkage_matrix, max_distance * 0.5, 'distance')
+    clusters = hac.fcluster(linkage_matrix, max_distance * 0.3, 'distance')
     n_clusters = len(np.unique(clusters))
     # clusters = ward.labels_
     # n_clusters = 2
@@ -59,11 +62,13 @@ def get_possible_finger_clusters(clusters, image_BGR, image_name):
 
     pinkest = 0
     lowest_level = 999
+    pinkest_color = 0
+    clusters_average_colors = []
 
     for i, cluster in enumerate(clusters):
         # get average color
         size = np.count_nonzero(cluster)
-        if size < img_hsv.shape[0] * img_hsv.shape[1] * 0.2:
+        if size < img_hsv.shape[0] * img_hsv.shape[1] * 0.1:
             continue
 
         colors_i = np.nonzero(cluster)
@@ -73,13 +78,33 @@ def get_possible_finger_clusters(clusters, image_BGR, image_name):
         if average_color[0] > 90:
             average_color[0] = 180 - average_color[0]
 
+        clusters_average_colors.append((i, average_color))
+
         dist_to_skin_color = np.linalg.norm(average_color - skin_color)
 
         if dist_to_skin_color < lowest_level:
             pinkest = i
+            pinkest_color = average_color
             lowest_level = dist_to_skin_color
 
-    skin_clusters.append(clusters[pinkest])
+    # ctr = np.array(clusters).reshape((-1, 1, 2)).astype(np.int32)
+
+    skin_cluster = clusters[pinkest]
+    clusters_to_merge = []
+    for c_i in clusters_average_colors:
+        i, color_i = c_i
+        if i == pinkest:
+            continue
+        dist = np.linalg.norm(pinkest_color - color_i)
+        if dist < 50:
+            b = clusters[i]
+            _, n = measurements.label(skin_cluster + b)
+            if n == 1:
+                clusters_to_merge.append(b)
+    for c in clusters_to_merge:
+        skin_cluster += c
+
+    skin_clusters.append(skin_cluster)
     return skin_clusters
 
 
@@ -111,3 +136,53 @@ def equalizeHistWithMask(src, mask):
 
     dst = np.uint8(dst)
     return dst
+
+
+def similarity_to_circle(contour, img):
+    masked_dilation = np.zeros(img.shape)
+    region_size = int(img.shape[0] / 5)
+
+    x, y, w, h = cv2.boundingRect(contour)
+    if w < region_size:
+        x = max(int(x + w / 2 - region_size / 2), 0)
+        w = region_size
+    else:
+        x = max(int(x - region_size / 4), 0)
+        w += region_size / 2
+    if h < region_size:
+        y = max(int(y + h / 2 - region_size / 2), 0)
+        h = region_size
+    else:
+        y = max(int(y - region_size / 4), 0)
+        h += region_size / 2
+    
+    masked_dilation[y:y + h, x:x + w] = img[y:y + h, x:x + w]
+    masked_dilation = np.uint8(masked_dilation)
+    
+    find_contours = masked_dilation.copy()
+    _, contours_in_subregion, _ = cv2.findContours(find_contours, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    biggest_contour = contours_in_subregion[0]
+    for sc in contours_in_subregion:
+        if cv2.contourArea(sc) > cv2.contourArea(biggest_contour):
+            biggest_contour = sc
+    
+    center, radius = cv2.minEnclosingCircle(biggest_contour)
+    x, y = center
+
+    # using the edge:
+    # cv2.circle(circled_mask, (int(x), int(y)), int(radius) - 10, 1, thickness=-1)
+    # kernel = np.ones((10, 10), np.uint8)
+    # circled_mask = cv2.morphologyEx(circled_mask, cv2.MORPH_GRADIENT, kernel)
+    a = radius**2 * math.pi
+    circle_similarity = cv2.contourArea(biggest_contour) / a
+    # cv2.circle(circled_mask, (int(x), int(y)), int(radius), 1, thickness=-1)
+
+    # cv2.imshow("circle" + str(contour), circled_mask)
+    # cv2.imshow("masked" + str(contour), masked_dilation)
+ 
+    # count = np.logical_and(circled_mask, masked_dilation)
+    # count = np.count_nonzero(count)
+    #
+    # circle_similarity = count / float(np.count_nonzero(circled_mask))
+
+    return circle_similarity

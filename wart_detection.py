@@ -21,8 +21,8 @@ import numpy as np
 import cv2
 import time
 import os.path
-# import pudb; # this is the debugger
-from utilities import segment_hclustering_sklearn, get_possible_finger_clusters
+# import pudb  # this is the debugger
+from utilities import segment_hclustering_sklearn, get_possible_finger_clusters, similarity_to_circle
 
 
 def find_warts(img_path, output, kernel_size=(8, 8),
@@ -123,13 +123,16 @@ def find_warts(img_path, output, kernel_size=(8, 8),
 
     nonzeros = np.nonzero(blur)
     nonzeros = blur[nonzeros]
-    s_above_percentile = np.percentile(nonzeros, 50)
+    s_above_percentile = np.percentile(nonzeros, 45)
 
-    _, black_thresh = cv2.threshold(blur_v, 100, 255, cv2.THRESH_BINARY)
+    _, black_thresh = cv2.threshold(blur_v, 130, 255, cv2.THRESH_BINARY)
 
     black_mask = np.ones(blur.shape)
     black_mask[blur <= s_above_percentile] = 0
     black_mask[np.where(black_thresh == 0)] = 0
+
+    cv2.imshow(img_path + " blur_v", blur_v)
+    cv2.imshow(img_path + " black mask", black_mask)
 
     canny = cv2.Canny(blur, canny_params[0], canny_params[1], canny_params[2])
     canny[np.where(mask_erosion == 0)] = 0
@@ -137,6 +140,8 @@ def find_warts(img_path, output, kernel_size=(8, 8),
 
     if output:
         cv2.imshow(img_path + "canny", canny)
+        # cv2.imshow(img_path + "black_mask", black_mask)
+        # cv2.imshow(img_path + "mask_erosion", mask_erosion)
  
     print(img_path + " %.2f" % (time.time() - st) + "s" + " - 7. dilate + erode edges to 'close' nearby edges")
 
@@ -154,24 +159,48 @@ def find_warts(img_path, output, kernel_size=(8, 8),
     cv2.normalize(dist_transform, dist_transform, 0, 1., cv2.NORM_MINMAX)
     # print np.histogram(dist_transform, bins=10, range=(0,1))
 
-    # if output:
-    #    cv2.imshow(img_path+"dist_transform", dist_transform)
-
-    thres_start = 0.2
+    thres_start = 0.4
     n_contours = 999
+    last_contours = []
     while n_contours > 3 and thres_start < 1.1:
+
         # pu.db
+        last_contours = contours
         ret, sure_fg = cv2.threshold(dist_transform, thres_start, 255, cv2.THRESH_BINARY)
         sure_fg = np.uint8(sure_fg)
-
+        
         kernel = np.ones((10, 10), np.uint8)
         dilation = cv2.dilate(sure_fg, kernel, iterations=2)
-
+        
         # find results
         im2, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         n_contours = len(contours)
 
-        thres_start += 0.05
+        new_contours = []
+        for c in contours:
+            x, y, w, h = cv2.boundingRect(c)
+            if w * h > dilation.shape[0] * dilation.shape[1] * 0.33:
+                thres_start += 0.1
+                continue
+            elif cv2.contourArea(c) > 100:
+                new_contours.append(c)
+
+        contours = new_contours
+
+        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+        check_for_circles = cv2.dilate(sure_fg, kernel, iterations=2)
+        new_contours = []
+        for c in contours:
+            s = similarity_to_circle(c, check_for_circles)
+            if s > 0.2:
+                new_contours.append(c)
+
+        if len(new_contours) > 0:
+            contours = new_contours
+        
+        n_contours = len(contours)
+        
+        thres_start += 0.1
 
     # marker_image = np.zeros(dilation.shape)
 

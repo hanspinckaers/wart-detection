@@ -24,12 +24,14 @@ params = {}
 # default settings
 kernel_size = (9, 9)
 morph_iterations = 2
-blur_size = [7, 10, 10]
-canny_params = [15, 35, 40]
+blur_size = [15, 15, 15]
+canny_params = [5, 20, 40]
+# canny_params = [5, 25, 40]
 dist_threshold = 8
 laplacian = (5, 5)
 dilation_iterations = 2
 percentile = 75
+# {'blur_size': [7, 15, 15], 'percentile': 75, 'dist_threshold': 8, 'canny_params': [1, 21, 40], 'dilation_iterations': 2, 'morph_iterations': 2, 'kernel_size': (9, 9), 'laplacian': (5, 5)}
 
 if sys.argv[1] == "dir":
     for root, dirnames, filenames in os.walk(sys.argv[2]):
@@ -37,6 +39,7 @@ if sys.argv[1] == "dir":
             matches.append(os.path.join(root, filename))
         for filename in fnmatch.filter(filenames, '*.png'):
             matches.append(os.path.join(root, filename))
+    output_result = True
 
 else:
     matches.append(sys.argv[1])
@@ -82,6 +85,11 @@ def wart_worker(filename):
         cv2.rectangle(img_with_regions, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         cv2.imwrite("output/" + filename + "/roi-" + str(counter) + ".png", img[y:y + h, x:x + w])
+        txtfilename = "output/" + filename + "/roi-" + str(counter) + ".csv"
+        target = open(txtfilename, 'w')
+        target.write(str(x) + "," + str(y) + "," + str(w) + "," + str(h) + "\n")
+        target.write(str(c))
+        target.close()
     
     cv2.imwrite("output/" + filename + "/original.png", img)
     cv2.imwrite("output/" + filename + "/original-locs.png", img_with_regions)
