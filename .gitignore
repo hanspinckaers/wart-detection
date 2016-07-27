@@ -7,3 +7,8 @@ cache/*
 share/*
 share
 pip-selfcheck.json
+pip*
+classified
+output
+.flake8
+.pyc
