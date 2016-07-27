@@ -3,3 +3,7 @@ lib
 include
 *.swp
 *.pyc
+cache/*
+share/*
+share
+pip-selfcheck.json
