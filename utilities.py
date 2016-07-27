@@ -25,8 +25,6 @@ def segment_hclustering_sklearn(image, image_name):
     max_distance = np.amax(ward.distance)
     clusters = hac.fcluster(linkage_matrix, max_distance * 0.3, 'distance')
     n_clusters = len(np.unique(clusters))
-    # clusters = ward.labels_
-    # n_clusters = 2
     label = np.reshape(clusters, gray.shape)
 
     # Plot the results on an image
@@ -34,11 +32,12 @@ def segment_hclustering_sklearn(image, image_name):
     clusters = []
     
     for l in range(n_clusters):
-        # cluster_img = image.copy()
-        # cluster_img = cv2.cvtColor(cluster_img, cv2.COLOR_HSV2BGR)
         i_of_cluster = l + 1  # first cluster (0) has label 1
         cluster = np.zeros(image.shape[:2])
         cluster[label == i_of_cluster] = 1
+
+        # cluster_img = image.copy()
+        # cluster_img = cv2.cvtColor(cluster_img, cv2.COLOR_HSV2BGR)
         # cluster_img[label != i_of_cluster] = 0
         # cv2.imshow(image_name + str(l) + "cluster", cluster_img)
         clusters.append(cluster)

@@ -25,10 +25,7 @@ import os.path
 from utilities import segment_hclustering_sklearn, get_possible_finger_clusters, similarity_to_circle
 
 
-def find_warts(img_path, output, kernel_size=(8, 8),
-               laplacian=(8, 8), morph_iterations=2, blur_size=[7, 60, 60],
-               canny_params=[20, 80, 5], dist_threshold=0.5,
-               dilation_iterations=3, percentile=50):
+def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_iterations=2, blur_size=[7, 60, 60], canny_params=[20, 80, 5], dist_threshold=0.5, dilation_iterations=3, percentile=50):
     # start timer to time execution
     st = time.time()
 
@@ -44,7 +41,7 @@ def find_warts(img_path, output, kernel_size=(8, 8),
         print(img_path + " %.2f" % (time.time() - st) + "s" + " - 2, 3 ,4. loading cached mask")
     else:
         if output:
-            cv2.imshow("original img", img)
+            cv2.imshow(img_path + " original img ", img)
 
         # width/height has to be able to divide by 4
         if img.shape[0] % 4 != 0 or img.shape[1] % 4 != 0:
@@ -92,7 +89,7 @@ def find_warts(img_path, output, kernel_size=(8, 8),
         cv2.imwrite("cache/" + img_path + "/mask.png", mask)
 
         if output:
-            cv2.imshow("mask", mask)
+            cv2.imshow(img_path + " skin ", mask)
 
     # dilate the mask, we do not need the edges of the skin
     kernel = np.ones((5, 5), np.uint8)
@@ -100,48 +97,35 @@ def find_warts(img_path, output, kernel_size=(8, 8),
 
     print(img_path + " %.2f" % (time.time() - st) + "s" + " - 5. bilateral blur inside of finger")
 
-    # blur = cv2.bilateralFilter(img,blur_size[0],blur_size[1], blur_size[2])
-
-    # d – Diameter of each pixel neighborhood that is used during filtering. If it is non-positive, it is computed from sigmaSpace .
-    # sigmaColor – Filter sigma in the color space. A larger value of the parameter means that farther colors within the pixel neighborhood (see sigmaSpace ) will be mixed together, resulting in larger areas of semi-equal color.
-    # sigmaSpace – Filter sigma in the coordinate space. A larger value of the parameter means that farther pixels will influence each other as long as their colors are close enough (see sigmaColor ). When d>0 , it specifies the neighborhood size regardless of sigmaSpace . Otherwise, d is proportional to sigmaSpace .
-
     # primitive implementation to remove hard shadows
     blur_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-
     h, s, v = cv2.split(blur_hsv)
-    blur_hsl = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-    h2, s2, l2 = cv2.split(blur_hsl)
 
     print(img_path + " %.2f" % (time.time() - st) + "s" + " - 6. canny edge detection in finger")
 
-    oneven = int(round(blur_size[1] / 2) * 2 + 1)
-    blur = cv2.GaussianBlur(s, (oneven, oneven), 0)
-    blur_v = cv2.GaussianBlur(v, (oneven, oneven), 0)
+    oneven = int(round(blur_size[1] / 2) * 2 + 1)  # kernel needs to be of oneven size
+    blur = cv2.GaussianBlur(s, (oneven, oneven), 0)  # use saturation channel to remove desaturated parts (light/shadow)
+    blur_v = cv2.GaussianBlur(v, (oneven, oneven), 0)  # use value channel to remove dark parts (such as numbers)
+
     blur = np.uint8(blur)
     blur_v = np.uint8(blur_v)
 
-    nonzeros = np.nonzero(blur)
-    nonzeros = blur[nonzeros]
+    nonzeros = np.nonzero(blur)  # don't count zeros into percentile
+    nonzeros = blur[nonzeros]  # get nonzero values
     s_above_percentile = np.percentile(nonzeros, 45)
 
-    _, black_thresh = cv2.threshold(blur_v, 130, 255, cv2.THRESH_BINARY)
+    _, black_thresh = cv2.threshold(blur_v, 130, 255, cv2.THRESH_BINARY)  # static threshold to remove dark parts
 
-    black_mask = np.ones(blur.shape)
+    black_mask = np.ones(blur.shape)  # make a new mask using
     black_mask[blur <= s_above_percentile] = 0
     black_mask[np.where(black_thresh == 0)] = 0
-
-    cv2.imshow(img_path + " blur_v", blur_v)
-    cv2.imshow(img_path + " black mask", black_mask)
 
     canny = cv2.Canny(blur, canny_params[0], canny_params[1], canny_params[2])
     canny[np.where(mask_erosion == 0)] = 0
     canny[np.where(black_mask == 0)] = 0
 
     if output:
-        cv2.imshow(img_path + "canny", canny)
-        # cv2.imshow(img_path + "black_mask", black_mask)
-        # cv2.imshow(img_path + "mask_erosion", mask_erosion)
+        cv2.imshow(img_path + " canny ", canny)
  
     print(img_path + " %.2f" % (time.time() - st) + "s" + " - 7. dilate + erode edges to 'close' nearby edges")
 
@@ -151,21 +135,14 @@ def find_warts(img_path, output, kernel_size=(8, 8),
     _, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.drawContours(dilation, contours, -1, 255, thickness=cv2.FILLED)
 
-    # if output:
-    #   cv2.imshow("dilation", dilation)
-
     dist_transform = cv2.distanceTransform(dilation, cv2.DIST_L2, 5)
-
     cv2.normalize(dist_transform, dist_transform, 0, 1., cv2.NORM_MINMAX)
-    # print np.histogram(dist_transform, bins=10, range=(0,1))
 
     thres_start = 0.4
     n_contours = 999
-    last_contours = []
     while n_contours > 3 and thres_start < 1.1:
 
         # pu.db
-        last_contours = contours
         ret, sure_fg = cv2.threshold(dist_transform, thres_start, 255, cv2.THRESH_BINARY)
         sure_fg = np.uint8(sure_fg)
         
@@ -176,6 +153,7 @@ def find_warts(img_path, output, kernel_size=(8, 8),
         im2, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         n_contours = len(contours)
 
+        # remove too big or small cluster
         new_contours = []
         for c in contours:
             x, y, w, h = cv2.boundingRect(c)
@@ -187,7 +165,6 @@ def find_warts(img_path, output, kernel_size=(8, 8),
 
         contours = new_contours
 
-        # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
         check_for_circles = cv2.dilate(sure_fg, kernel, iterations=2)
         new_contours = []
         for c in contours:
@@ -201,8 +178,6 @@ def find_warts(img_path, output, kernel_size=(8, 8),
         n_contours = len(contours)
         
         thres_start += 0.1
-
-    # marker_image = np.zeros(dilation.shape)
 
     print img_path + " %.2f" % (time.time() - st) + "s" + " - elapsed time"
 
