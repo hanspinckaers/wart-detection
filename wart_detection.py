@@ -112,7 +112,10 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
 
     nonzeros = np.nonzero(blur)  # don't count zeros into percentile
     nonzeros = blur[nonzeros]  # get nonzero values
-    s_above_percentile = np.percentile(nonzeros, 45)
+    if len(nonzeros) != 0:
+        s_above_percentile = np.percentile(nonzeros, 45)
+    else:
+        s_above_percentile = 0
 
     _, black_thresh = cv2.threshold(blur_v, 130, 255, cv2.THRESH_BINARY)  # static threshold to remove dark parts
 
@@ -141,7 +144,6 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
     thres_start = 0.4
     n_contours = 999
     while n_contours > 3 and thres_start < 1.1:
-
         # pu.db
         ret, sure_fg = cv2.threshold(dist_transform, thres_start, 255, cv2.THRESH_BINARY)
         sure_fg = np.uint8(sure_fg)
