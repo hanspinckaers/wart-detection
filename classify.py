@@ -36,28 +36,32 @@ def classifyImg(original, dirname, imgname):
     bordered = cv2.copyMakeBorder(img, top, bottom, left, right, cv2.BORDER_CONSTANT, value=0)
 
     hstacked = np.hstack((original, bordered))
-    cv2.imshow("foto", hstacked)
+    cv2.destroyAllWindows()
+    cv2.imshow(dirname, hstacked)
     k = cv2.waitKey()
     if k == 113:  # q
         quit()
     if k == 112:  # p
-        return "p"
         print "go back"
+        return "p"
     if k == 119:  # w
-        return "w"
         print "save as wart"
+        return "w"
     if k == 99:  # c
-        return "c"
         print "save wart with cream"
+        return "c"
     if k == 110:  # n
-        return "n"
         print "no wart"
+        return "n"
     if k == 100:  # d
-        return "d"
         print "dubious"
+        return "d"
+    if k == 115:
+        print "save original"
+        return "s"
 
-    return "-"
     print k
+    return "-"
 
 
 def newImgName(dirname, filename):
@@ -91,8 +95,21 @@ while i < len(images):
     
     original = cv2.imread(ori_path)
     k = "-"
-    while k == "-":
+    while k == "-" or k == "s":
         k = classifyImg(original, img_arr[0], img_arr[1])
+
+        # when pressing s: save original for later analysis
+        if k == "s":
+            new_path_ori = os.path.join('classified', "originals")
+            if not os.path.exists(new_path_ori):
+                os.makedirs(new_path_ori)
+
+            new_path_ori_file = os.path.join(new_path_ori, newImgName(img_arr[0], "original-locs.png"))
+            shutil.copyfile(ori_path, new_path_ori_file)
+
+            ori_no_squares_path = os.path.join(img_arr[0], "original.png")
+            new_path_ori_file = os.path.join(new_path_ori, newImgName(img_arr[0], "original.png"))
+            shutil.copyfile(ori_no_squares_path, new_path_ori_file)
 
     if k == "p":
         rm_arr = images[i - 1]
@@ -126,3 +143,4 @@ while i < len(images):
     images[i] = [img_arr[0], img_arr[1], new_path]
 
     i += 1
+    print str(i) + " - " + str(len(images))
