@@ -123,7 +123,8 @@ labels = np.zeros(len(warts) + len(warts_cream))
 
 images = []
 
-if True:
+load_tsne = True
+if not load_tsne:
     # double code: should be a function
     for i, filename in enumerate(warts):
         print filename
