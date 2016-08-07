@@ -120,7 +120,7 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
     y_coords = np.linspace(y_min, y_max, res_y)
 
     # make new coordinates
-    new_coords = np.ones((len(xx), 3), dtype=int)
+    new_coords = np.ones((len(xx), 2), dtype=int)
 
     for i, (x, y) in enumerate(zip(xx, yy)):
         x_idx = np.argmin((x - x_coords) ** 2)
@@ -130,20 +130,7 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
 
     print "Resolve overlapping:"
 
-    new_coords[:, 2] = np.arange(len(new_coords))  # add column to remember order 3
-
-    # xs = new_coords[:,0]
-    # x_sorted = np.argsort(xs)
-    # x_ref = np.empty((new_coords.shape[0], 2), dtype=int)
-    # x_ref[:,0] = xs[x_sorted]
-    # x_ref[:,1] = x_sorted
-
-    # ys = new_coords[:,1]
-    # y_sorted = np.argsort(ys)
-    # y_ref = np.empty((new_coords.shape[0], 2), dtype=int)
-    # y_ref[:,0] = ys[y_sorted]
-    # y_ref[:,1] = y_sorted
-
+    # new_coords[:, 2] = np.arange(len(new_coords))  # add column to remember order 3
     correct_loop = new_coords.copy()
 
     running = True
@@ -157,21 +144,9 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
         start_time = time.time()
         i = 0
         while i < len(new_coords):
-            # if i % 1000 == 0:
-            #    print str(i)
             coord = new_coords[i]
             overlap_indices = []
 
-            # this takes the longest time
-            # first_x_i = np.searchsorted(x_ref[:,0], coord[0] - img_res, side='left')
-            # last_x_i = np.searchsorted(x_ref[:,0], coord[0] + img_res, side='right')
-            # first_y_i = np.searchsorted(y_ref[:,0], coord[1] - img_res, side='left')
-            # last_y_i = np.searchsorted(y_ref[:,0], coord[1] + img_res, side='right')
-
-            # x_indices = x_ref[first_x_i:last_x_i][:,1]
-            # y_indices = y_ref[first_y_i:last_y_i][:,1]
-
-            # overlap_indices = np.intersect1d(x_indices, y_indices)
             overlap_indices = np.where((np.abs(new_coords[:,0] - coord[0]) < img_res) & (np.abs(new_coords[:,1] - coord[1]) < img_res))[0]
 
             overall_vector = np.array([0,0], dtype=float)
@@ -181,7 +156,7 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
 
                 collision_coord = new_coords[idx]
 
-                vec_diff = collision_coord[:2] - coord[:2]  # difference between the two coordinates
+                vec_diff = collision_coord - coord  # difference between the two coordinates
                 max_diff = np.abs(vec_diff).max().astype(float)
 
                 # we should add a very small random vec instead
@@ -203,10 +178,9 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
             if len(overlap_indices) > 1:
                 overall_vector = overall_vector / (len(overlap_indices) - 1)
 
-            correct_loop[i][:2] = (coord[:2] - overall_vector).astype(int)  # not sure why this should be minus ...
+            correct_loop[i] = (coord - overall_vector).astype(int)  # not sure why this should be minus ...
 
             i += 1
-        j += 1
 
         print("--- %s seconds - %s avg movement ---" % (time.time() - start_time, str(np.sum(overall_movement / overall_n))))
 
@@ -215,23 +189,12 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
         
         new_coords = correct_loop.copy()
 
-        # rebuild sorted lists
-        # xs = new_coords[:,0]
-        # x_sorted = np.argsort(xs)
-        # x_ref = np.empty((new_coords.shape[0], 2), dtype=int)
-        # x_ref[:,0] = xs[x_sorted]
-        # x_ref[:,1] = x_sorted
+        j += 1
 
-        # ys = new_coords[:,1]
-        # y_sorted = np.argsort(ys)
-        # y_ref = np.empty((new_coords.shape[0], 2), dtype=int)
-        # y_ref[:,0] = ys[y_sorted]
-        # y_ref[:,1] = y_sorted
-
-    n_x_min, n_y_min, _ = new_coords.min(axis=0)
+    n_x_min, n_y_min = new_coords.min(axis=0)
     new_coords[:,0] -= n_x_min
     new_coords[:,1] -= n_y_min
-    n_x_max, n_y_max, _ = new_coords.max(axis=0)
+    n_x_max, n_y_max = new_coords.max(axis=0)
 
     print "--- Making plot: (" + str(n_x_max) + "," + str(n_y_max) + ") ---"
 
