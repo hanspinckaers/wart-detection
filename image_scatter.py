@@ -66,7 +66,7 @@ def min_resize(img, size):
     return img
 
 
-def image_scatter(f2d, images, img_res, res=6000, cval=1.):
+def image_scatter(f2d, images, img_res, res=8000, cval=1.):
     """
     Embeds images via tsne into a scatter plot.
 
@@ -102,7 +102,6 @@ def image_scatter(f2d, images, img_res, res=6000, cval=1.):
 
     xx = f2d[:, 0]
     yy = f2d[:, 1]
-
     
     x_min, x_max = xx.min(), xx.max()
     y_min, y_max = yy.min(), yy.max()
@@ -132,6 +131,19 @@ def image_scatter(f2d, images, img_res, res=6000, cval=1.):
     print "Resolve overlapping:"
 
     new_coords[:, 2] = np.arange(len(new_coords))  # add column to remember order 3
+
+    # xs = new_coords[:,0]
+    # x_sorted = np.argsort(xs)
+    # x_ref = np.empty((new_coords.shape[0], 2), dtype=int)
+    # x_ref[:,0] = xs[x_sorted]
+    # x_ref[:,1] = x_sorted
+
+    # ys = new_coords[:,1]
+    # y_sorted = np.argsort(ys)
+    # y_ref = np.empty((new_coords.shape[0], 2), dtype=int)
+    # y_ref[:,0] = ys[y_sorted]
+    # y_ref[:,1] = y_sorted
+
     correct_loop = new_coords.copy()
 
     running = True
@@ -142,16 +154,26 @@ def image_scatter(f2d, images, img_res, res=6000, cval=1.):
     while running:
         running = True
         print "Resolving " + str(j) + "x"
-
+        start_time = time.time()
         i = 0
         while i < len(new_coords):
-            if i % 1000 == 0:
-                print str(i)
+            # if i % 1000 == 0:
+            #    print str(i)
             coord = new_coords[i]
             overlap_indices = []
 
             # this takes the longest time
+            # first_x_i = np.searchsorted(x_ref[:,0], coord[0] - img_res, side='left')
+            # last_x_i = np.searchsorted(x_ref[:,0], coord[0] + img_res, side='right')
+            # first_y_i = np.searchsorted(y_ref[:,0], coord[1] - img_res, side='left')
+            # last_y_i = np.searchsorted(y_ref[:,0], coord[1] + img_res, side='right')
+
+            # x_indices = x_ref[first_x_i:last_x_i][:,1]
+            # y_indices = y_ref[first_y_i:last_y_i][:,1]
+
+            # overlap_indices = np.intersect1d(x_indices, y_indices)
             overlap_indices = np.where((np.abs(new_coords[:,0] - coord[0]) < img_res) & (np.abs(new_coords[:,1] - coord[1]) < img_res))[0]
+
             overall_vector = np.array([0,0], dtype=float)
             for idx in overlap_indices:
                 if i == idx:
@@ -186,12 +208,25 @@ def image_scatter(f2d, images, img_res, res=6000, cval=1.):
             i += 1
         j += 1
 
-        print "- avg movement: " + str(overall_movement / overall_n)
+        print("--- %s seconds - %s avg movement ---" % (time.time() - start_time, str(np.sum(overall_movement / overall_n))))
 
         if np.sum(overall_movement / overall_n) < 4:
             running = False
         
         new_coords = correct_loop.copy()
+
+        # rebuild sorted lists
+        # xs = new_coords[:,0]
+        # x_sorted = np.argsort(xs)
+        # x_ref = np.empty((new_coords.shape[0], 2), dtype=int)
+        # x_ref[:,0] = xs[x_sorted]
+        # x_ref[:,1] = x_sorted
+
+        # ys = new_coords[:,1]
+        # y_sorted = np.argsort(ys)
+        # y_ref = np.empty((new_coords.shape[0], 2), dtype=int)
+        # y_ref[:,0] = ys[y_sorted]
+        # y_ref[:,1] = y_sorted
 
     n_x_min, n_y_min, _ = new_coords.min(axis=0)
     new_coords[:,0] -= n_x_min
