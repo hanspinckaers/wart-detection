@@ -1,52 +1,9 @@
 # from tsne import bh_sne
 import numpy as np
 from skimage.transform import resize
-# import cv2
-import pudb
-import math
-import multiprocessing
-# import pymunk
-# from matplotlib import pyplot as plt
-from functools import partial
 import time
 
-def calc_resolved_vector(i, coords):
-    coord = coords[i]
-    img_res = 100
-    overlap_indices = coords[(np.abs(coords[:,0] - coord[0]) < img_res) & (np.abs(coords[:,1] - coord[1]) < img_res)]
-    overall_vector = np.array([0,0], dtype=float)
-    if i % 1000 == 0:
-        print str(i)
 
-    for collision_coord in overlap_indices:
-        # if i == idx:
-        #    continue
-
-        # collision_coord = coords[idx]
-
-        vec_diff = collision_coord[:2] - coord[:2]  # difference between the two coordinates
-        max_diff = np.abs(vec_diff).max().astype(float)
-
-        # we should add a very small random vec instead
-        if max_diff == 0:
-            continue
-            # vec = np.array([1, 0])
-            # max_diff = 1
-
-        vec = vec_diff / max_diff
-        vec = vec * img_res  # this is diff of the location of i without collision with idx
-
-        vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
-
-        overall_vector += vec_diff
-
-    if len(overlap_indices) > 1:
-        overall_vector = overall_vector / (len(overlap_indices) - 1)
-
-    # correct_loop[i][:2] = coord[:2] - overall_vector  # not sure why this should be minus ...
-
-    return np.ceil(overall_vector).astype(int)
-        
 def gray_to_color(img):
     if len(img.shape) == 2:
         img = np.dstack((img, img, img))
@@ -130,14 +87,14 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
 
     print "Resolve overlapping:"
 
-    # new_coords[:, 2] = np.arange(len(new_coords))  # add column to remember order 3
     correct_loop = new_coords.copy()
 
-    running = True
+    overall_movement = 0  # keep track of overall movement
+    overall_n = 0  # number of images moved
 
-    overall_movement = 0
-    overall_n = 0
-    j = 0
+    j = 0  # keep track of n runs
+
+    running = True
     while running:
         running = True
         print "Resolving " + str(j) + "x"
@@ -159,18 +116,16 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
                 vec_diff = collision_coord - coord  # difference between the two coordinates
                 max_diff = np.abs(vec_diff).max().astype(float)
 
-                # we should add a very small random vec instead
+                # TODO?: we should add a very small random vec instead
                 if max_diff == 0:
                     continue
-                    # vec = np.array([1, 0])
-                    # max_diff = 1
 
                 vec = vec_diff / max_diff
                 vec = vec * img_res  # this is diff of the location of i without collision with idx
 
                 vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
 
-                overall_vector += vec_diff
+                overall_vector += vec_diff  # take max vector
 
                 overall_movement += np.abs(vec_diff)
                 overall_n += 1
