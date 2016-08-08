@@ -91,61 +91,33 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
 
     print "Resolve overlapping:"
 
-    correct_loop = new_coords.copy()
-
-    overall_movement = 0  # keep track of overall movement
-    overall_n = 0  # number of images moved
-
     j = 0  # keep track of n runs
-    n_regions = 2  # 4 x 4 regions
-
-
-    n_x_max, n_y_max = new_coords.max(axis=0)
-
-    x_step = np.ceil(n_x_max / n_regions)
-    y_step = np.ceil(n_y_max / n_regions)
-
     running = True
-    while running:
-        # divide area in regions for speed
-        print "Building subregions"
-        # subregions = []
-        # n_x = 0
-        # while n_x < n_regions:
-        #    n_y = 0
-        #    while n_y < n_regions:
-        #        region = np.where( (new_coords[:,0] - x_step * n_x < x_step) & (new_coords[:,1] - y_step * n_y < y_step) )[0]
-        #        subregions.append(region)
-        #        n_y += 1
-        #    n_x += 1
 
+    overall_vectors = np.zeros(new_coords.shape)
+    while running:
         print "Resolving " + str(j) + "x"
         start_time = time.time()
 
-        # for reg_i, region in enumerate(subregions):
-        #     print "region: " + str(reg_i)
-        #     n_x = np.floor(reg_i / n_regions)
-        #     n_y = reg_i - n_x * n_regions 
-        #     # print "getting coords"
-        #     reg_coords = new_coords[region]
+        overall_movement = 0  # keep track of overall movement
+        overall_n = 0  # number of images moved
+
         i = 0
+        overall_vectors = np.zeros(new_coords.shape)
         while i < len(new_coords):
             coord = new_coords[i]
-            # if coord[0] < img_res or coord[0] > (n_x + 1) * x_step - img_res or coord[1] < img_res or coord[1] > (n_y + 1) * y_step - img_res:
-                # print "check to all"
-            #    check_coords = new_coords 
-            #else:
-                # print "check within"
-            #    check_coords = reg_coords
-
             overall_vector = np.array([0,0], dtype=float)
             check_indices = np.where((np.abs(new_coords[:,0] - coord[0]) < img_res) & (np.abs(new_coords[:,1] - coord[1]) < img_res))[0]
+
+            if len(check_indices) == 1: 
+                i += 1
+                continue
 
             overlap_coords = new_coords[check_indices]
             vec_diff = overlap_coords - coord  # difference between the two coordinates
             max_diff = np.abs(vec_diff).max(axis=1).astype(float) 
+            max_diff[max_diff == 0] = 1
             vec = vec_diff / max_diff[:,None]  
-            vec = np.nan_to_num(vec)
             vec = vec * img_res 
             vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
             overall_vector = np.sum(vec_diff, axis=0)
@@ -155,17 +127,16 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
             
             overall_movement += np.abs(overall_vector)
             overall_n += 1
+            overall_vectors[i] = overall_vector
 
-            correct_loop[i] = (coord - overall_vector).astype(int)  # not sure why this should be minus ...
-             
             i += 1
 
         print("--- %s seconds - %s avg movement ---" % (time.time() - start_time, str(np.sum(overall_movement / overall_n))))
 
-        if np.sum(overall_movement / overall_n) < 1:
+        if j > 2000:
             running = False
-        
-        new_coords = correct_loop.copy()
+
+        new_coords = (new_coords - overall_vectors).astype(int)
 
         j += 1
 
