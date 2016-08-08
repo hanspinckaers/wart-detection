@@ -2,6 +2,7 @@
 import numpy as np
 from skimage.transform import resize
 import time
+import pudb
 
 
 def gray_to_color(img):
@@ -21,7 +22,6 @@ def min_resize(img, size):
         else:
             img = resize(img, (int(size), int(round((w / h) * size))))
     return img
-
 
 def image_scatter(f2d, images, img_res, res=8000, cval=1.):
     """
@@ -50,8 +50,12 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
         Image of visualization
     """
     # features = np.copy(features).astype('float64')
-    images = [gray_to_color(image) for image in images]
-    images = [min_resize(image, img_res) for image in images]
+    # images = [gray_to_color(image) for image in images]
+
+    images = np.load("images_resized.npy")
+    # images = [min_resize(image, img_res) for image in images]
+    # np.save("images_resized", images)
+
     max_width = max([image.shape[0] for image in images])
     max_height = max([image.shape[1] for image in images])
 
@@ -93,53 +97,72 @@ def image_scatter(f2d, images, img_res, res=8000, cval=1.):
     overall_n = 0  # number of images moved
 
     j = 0  # keep track of n runs
+    n_regions = 2  # 4 x 4 regions
+
+
+    n_x_max, n_y_max = new_coords.max(axis=0)
+
+    x_step = np.ceil(n_x_max / n_regions)
+    y_step = np.ceil(n_y_max / n_regions)
 
     running = True
     while running:
-        running = True
+        # divide area in regions for speed
+        print "Building subregions"
+        # subregions = []
+        # n_x = 0
+        # while n_x < n_regions:
+        #    n_y = 0
+        #    while n_y < n_regions:
+        #        region = np.where( (new_coords[:,0] - x_step * n_x < x_step) & (new_coords[:,1] - y_step * n_y < y_step) )[0]
+        #        subregions.append(region)
+        #        n_y += 1
+        #    n_x += 1
+
         print "Resolving " + str(j) + "x"
         start_time = time.time()
+
+        # for reg_i, region in enumerate(subregions):
+        #     print "region: " + str(reg_i)
+        #     n_x = np.floor(reg_i / n_regions)
+        #     n_y = reg_i - n_x * n_regions 
+        #     # print "getting coords"
+        #     reg_coords = new_coords[region]
         i = 0
         while i < len(new_coords):
             coord = new_coords[i]
-            overlap_indices = []
-
-            overlap_indices = np.where((np.abs(new_coords[:,0] - coord[0]) < img_res) & (np.abs(new_coords[:,1] - coord[1]) < img_res))[0]
+            # if coord[0] < img_res or coord[0] > (n_x + 1) * x_step - img_res or coord[1] < img_res or coord[1] > (n_y + 1) * y_step - img_res:
+                # print "check to all"
+            #    check_coords = new_coords 
+            #else:
+                # print "check within"
+            #    check_coords = reg_coords
 
             overall_vector = np.array([0,0], dtype=float)
-            for idx in overlap_indices:
-                if i == idx:
-                    continue
+            check_indices = np.where((np.abs(new_coords[:,0] - coord[0]) < img_res) & (np.abs(new_coords[:,1] - coord[1]) < img_res))[0]
 
-                collision_coord = new_coords[idx]
+            overlap_coords = new_coords[check_indices]
+            vec_diff = overlap_coords - coord  # difference between the two coordinates
+            max_diff = np.abs(vec_diff).max(axis=1).astype(float) 
+            vec = vec_diff / max_diff[:,None]  
+            vec = np.nan_to_num(vec)
+            vec = vec * img_res 
+            vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
+            overall_vector = np.sum(vec_diff, axis=0)
 
-                vec_diff = collision_coord - coord  # difference between the two coordinates
-                max_diff = np.abs(vec_diff).max().astype(float)
-
-                # TODO?: we should add a very small random vec instead
-                if max_diff == 0:
-                    continue
-
-                vec = vec_diff / max_diff
-                vec = vec * img_res  # this is diff of the location of i without collision with idx
-
-                vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
-
-                overall_vector += vec_diff  # take max vector
-
-                overall_movement += np.abs(vec_diff)
-                overall_n += 1
-
-            if len(overlap_indices) > 1:
-                overall_vector = overall_vector / (len(overlap_indices) - 1)
+            if len(check_indices) > 1:
+                overall_vector = overall_vector / (len(check_indices) - 1)
+            
+            overall_movement += np.abs(overall_vector)
+            overall_n += 1
 
             correct_loop[i] = (coord - overall_vector).astype(int)  # not sure why this should be minus ...
-
+             
             i += 1
 
         print("--- %s seconds - %s avg movement ---" % (time.time() - start_time, str(np.sum(overall_movement / overall_n))))
 
-        if np.sum(overall_movement / overall_n) < 4:
+        if np.sum(overall_movement / overall_n) < 1:
             running = False
         
         new_coords = correct_loop.copy()
