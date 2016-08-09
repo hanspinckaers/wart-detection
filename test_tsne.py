@@ -177,19 +177,20 @@ if not load_tsne:
     np.save("labels", labels)
 
 else:
-    images = np.load("images.npy")
+    # images = np.load("images.npy")
+    images = []
     labels = np.load("labels.npy")
     print len(labels)
     features_TSNE = np.load("tsne.npy")
     print len(features_TSNE)
 
+img = image_scatter(features_TSNE, images, 50)
+img = img * 255
+cv2.imwrite("image_scatter.png", img)
+
 plt.scatter(features_TSNE[:, 0], features_TSNE[:, 1], c=labels, cmap="viridis")
 plt.clim(-0.5, 9.5)
-
 figure = plt.gcf()  # get current figure
 figure.set_size_inches(35, 35)
 plt.savefig("sift-tsne-scatter.png", dpi=100, bbox_inches='tight')
 
-img = image_scatter(features_TSNE, images, 50)
-img = img * 255
-cv2.imwrite("image_scatter.png", img)

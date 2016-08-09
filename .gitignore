@@ -12,3 +12,14 @@ classified
 output
 .flake8
 .pyc
+classified
+run
+archive
+pymeanshift
+*.zip
+opencv
+opencv_contrib
+scikit-learn
+results
+*.npy
+*.lprof
