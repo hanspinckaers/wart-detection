@@ -177,14 +177,12 @@ if not load_tsne:
     np.save("labels", labels)
 
 else:
-    # images = np.load("images.npy")
+    images = np.load("images.npy")
     images = []
     labels = np.load("labels.npy")
-    print len(labels)
     features_TSNE = np.load("tsne.npy")
-    print len(features_TSNE)
 
-img = image_scatter(features_TSNE, images, 50)
+img = image_scatter(features_TSNE, images)
 img = img * 255
 cv2.imwrite("image_scatter.png", img)
 

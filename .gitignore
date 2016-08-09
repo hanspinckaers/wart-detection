@@ -1,4 +1,5 @@
 bin
+pip*
 lib
 include
 *.swp
