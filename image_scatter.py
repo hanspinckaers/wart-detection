@@ -19,10 +19,10 @@ def min_resize(img, size):
     """
     Resize an image so that it is size along the minimum spatial dimension.
     """
-    w, h = map(float, img.shape[:2])
+    h, w = map(float, img.shape[:2])
     if min([w, h]) != size:
         if h <= w:
-            img = resize(img, (int(round((h / w) * size)), int(size)))
+            img = resize(img, (int(round((h / w) * size)), int(size)))  # rows / columns so y / x
         else:
             img = resize(img, (int(size), int(round((w / h) * size))))
     return img
@@ -104,8 +104,8 @@ def image_scatter(coordinates, images, img_size=50, scatter_size=8000, cval=1., 
 
     shapes = np.array([image.shape for image in images])
 
-    img_widths = shapes[:,0]
-    img_heights = shapes[:,1]
+    img_widths = shapes[:,1]
+    img_heights = shapes[:,0]
 
     max_width = max(img_widths)
     max_height = max(img_heights)
