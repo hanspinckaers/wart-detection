@@ -15,8 +15,8 @@
 
 - *detect\_warts.py*: a python script that searches a directory for images and runs wart_detection.py on them
 	- run on folder: ```python detect_warts.py dir [dirname]``` e.g. "images" as dirname
-    - run on folder with parallelism: ```python detect_wart.py dir images [number-of-processes]```
-    - run on file: ```python detect_wart.py images/wart-on-skin.png```
+    - run on folder with parallelism: ```python detect_warts.py dir images [number-of-processes]```
+    - run on file: ```python detect_warts.py images/wart-on-skin.png```
 
 - *classify.py*: this python script will show the images in a directory one-by-one for classifying the pictures by hand:
 	- run on folder: ```python classify.py [dir]```
