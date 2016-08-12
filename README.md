@@ -9,7 +9,7 @@
 - **Scikit-learn** built from source 0.18.dev0: I don't remember why I needed to built from source, but if you're seeing sklearn related errors, try to install it from source.
 - **SciPy** 0.17.1
 - **Numpy** 1.11.0
-- **bh_tsne (Barnes-Hut TSNE)**: To run ```test\_tsne.py``` **bh\_tsne** needs to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
+- **bh_tsne (Barnes-Hut TSNE)**: To run ```test_tsne.py``` **bh\_tsne** needs to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
 
 ### Python scripts:
 
@@ -17,6 +17,8 @@
 	- run on folder: ```python detect_warts.py dir [dirname]``` e.g. "images" as dirname
     - run on folder with parallelism: ```python detect_warts.py dir images [number-of-processes]```
     - run on file: ```python detect_warts.py images/wart-on-skin.png```
+    - quit by typing any key
+    - subregions are saved in the output folder
 
 - *classify.py*: this python script will show the images in a directory one-by-one for classifying the pictures by hand:
 	- run on folder: ```python classify.py [dir]```
