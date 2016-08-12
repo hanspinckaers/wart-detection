@@ -1,4 +1,4 @@
-### Run python.py for wart detection.
+### Dependencies
  
 - **OpenCV 3.1 + contrib**:
 	NB contrib module is needed for xfeatures2d (SIFT/SURF):
@@ -12,7 +12,6 @@
 - ** bh\_tsne**: To run test\_tsne.py **bh\_tsne** need to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
 
 ### Python scripts:
-
 
 - *detect\_warts.py*: a python script that searches a directory for images and runs wart_detection.py on them
 	- run on folder: ```python detect_warts.py dir [dirname]``` e.g. "images" as dirname
