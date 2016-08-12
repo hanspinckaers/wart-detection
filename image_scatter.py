@@ -294,24 +294,33 @@ def image_scatter(coordinates, images, img_size=50, scatter_size=8000, cval=1., 
 
                 if assume_same_img_size:
                     vec = vec_diff / np.abs(max_diff[:,None])
-                    vec *= img_size  # does this have to be negative? why?
-                    vec_diff = (vec - vec_diff) / 2.  # calculate the diff to current idx location
+                    vec *= img_size
+                    vec_diff = (vec - vec_diff)  # calculate the diff to current idx location
 
-                overall_vector = np.average(vec_diff, axis=0)
+                overall_vector = np.average(vec_diff, axis=0)  # get the average movement this image has to make to get out of collisions
 
-                if len(check_indices) > 0:
-                    overall_vector = overall_vector / (len(check_indices) - 1)
+                # limit step size
+                norm = np.linalg.norm(overall_vector)
+                if norm > 4.:
+                    overall_vector = overall_vector / norm * 4.
 
-                # always move by at least a pixel in either direction
-                if overall_vector[0] < 0:
-                    overall_vector[0] = np.floor(overall_vector[0])
+                # always move by at least a pixel in either directions
+                abs_vec = np.abs(overall_vector)
+                if abs_vec[0] < 0.5 and abs_vec[0] >= abs_vec[1]:
+                    if overall_vector[0] < 0:
+                        overall_vector[0] = np.floor(overall_vector[0])
+                    else:
+                        overall_vector[0] = np.ceil(overall_vector[0])
                 else:
-                    overall_vector[0] = np.ceil(overall_vector[0])
+                    overall_vector[0] = round(overall_vector[0])  # be aware: numpy rounds halfs to closest *even* number (0.5 becomes 0, 1.5 becomes 2)
 
-                if overall_vector[1] < 0:
-                    overall_vector[1] = np.floor(overall_vector[1])
+                if abs_vec[1] < 0.5 and abs_vec[1] > abs_vec[0]:
+                    if overall_vector[1] < 0:
+                        overall_vector[1] = np.floor(overall_vector[1])
+                    else:
+                        overall_vector[1] = np.ceil(overall_vector[1])
                 else:
-                    overall_vector[1] = np.ceil(overall_vector[1])
+                    overall_vector[1] = round(overall_vector[1])
 
                 overall_movement += np.abs(overall_vector)
                 overall_n += 1
