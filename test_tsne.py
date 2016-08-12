@@ -7,6 +7,10 @@ from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
 
+# symbols used for printing output
+CURSOR_UP_ONE = '\x1b[1A'
+ERASE_LINE = '\x1b[2K'
+
 # sift-tsne-10-features-per-img.png
 # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
 # same params for matching
@@ -141,7 +145,9 @@ def get_features(images, n_features):
     p_i = 0
     featureVectors = None
     for i, filename in enumerate(images):
-        print filename
+        if i > 0:
+            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+        print "--- Extracting features " + str(filename) + " ---"
 
         image = cv2.imread(filename)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -156,20 +162,24 @@ def get_features(images, n_features):
         if desc is None:
             continue
 
-        len_features = len(desc)
+        len_features = desc.shape[0]
 
         if len_features == 0:
             continue
 
         if featureVectors is None:
-            featureVectors = np.zeros((len(images) * n_features, desc.shape[1]), dtype=np.float32)
+            featureVectors = np.zeros((len(images) * n_features * 2, desc.shape[1]), dtype=np.float32)
+
+        # if featureVectors[p_i:p_i + len_features].shape != desc.shape:
+        #    pu.db
 
         featureVectors[p_i:p_i + len_features] = desc
+
         p_i = p_i + len_features
 
         continue
+    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
 
-    print p_i
     return featureVectors[0: p_i + 1]
 
 load_saved = False
@@ -198,6 +208,8 @@ features = np.concatenate((wart_features, wart_features_cream))
 if False:
     vocabulary = np.load("vocabulary.npy")
 else:
+    print "--- Training BOW (can take a long time) ---"
+
     bow = cv2.BOWKMeansTrainer(1000)
     bow.add(features)
     vocabulary = bow.cluster()
@@ -224,13 +236,17 @@ load_cache = False
 if not load_cache:
     # double code: should be a function
     for i, filename in enumerate(warts):
-        print filename
+        if i > 0:
+            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+
+        print "--- Creating histograms " + str(filename) + " ---"
+
         image = cv2.imread(filename)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
         kp, desc = sift.detectAndCompute(gray, None)
         if desc is None or len(desc) == 0:
-            print "no kps for " + str(filename)
+            print "--- No features found for " + str(filename) + "--- \n"
             continue
 
         hist = extractor.compute(image, kp)
@@ -240,11 +256,15 @@ if not load_cache:
             continue
 
         histograms[i] = hist
-        labels[i] = 1
+        labels[i] = 180
         images.append(image)
 
     for i, filename in enumerate(warts_cream):
-        print filename
+        if i > 0:
+            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+
+        print "--- Creating histograms " + str(filename) + " ---"
+
         image = cv2.imread(filename)
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
@@ -260,11 +280,13 @@ if not load_cache:
             continue
 
         histograms[i + len(warts)] = hist
-        labels[i + len(warts)] = 180
+        labels[i + len(warts)] = 1
         images.append(image)
 
     histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
     labels = np.delete(labels, np.where(labels == 0), 0)
+
+    print "--- Run TSNE " + str(filename) + " ---"
 
     features_TSNE = run_bh_tsne(histograms, verbose=True)
 
