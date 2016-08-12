@@ -1,6 +1,5 @@
 # from tsne import bh_sne
 import numpy as np
-from skimage.transform import resize
 import time
 import os
 import cv2
@@ -23,9 +22,10 @@ def min_resize(img, size):
     h, w = map(float, img.shape[:2])
     if min([w, h]) != size:
         if h <= w:
-            img = resize(img, (int(round((h / w) * size)), int(size)))  # rows / columns so y / x
+            img = cv2.resize(img, (int(size), int(round((h / w) * size))))  # rows / columns so y / x
         else:
-            img = resize(img, (int(size), int(round((w / h) * size))))
+            img = cv2.resize(img, (int(round((w / h) * size)), int(size)))
+
     return img
 
 
