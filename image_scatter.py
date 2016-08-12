@@ -16,10 +16,10 @@ def gray_to_color(img):
 
 def min_resize(img, size):
     """
-    Resize an image so that it is size along the minimum spatial dimension.
+    Resize an image so that the longest edge is equal to size.
     """
     h, w = map(float, img.shape[:2])
-    if min([w, h]) != size:
+    if max([w, h]) != size:
         if h <= w:
             img = cv2.resize(img, (int(size), int(round((h / w) * size))))  # rows / columns so y / x
         else:
@@ -29,8 +29,8 @@ def min_resize(img, size):
 
 
 def scaled_coordinates(coordinates, new_size=8000):
-    xx = coordinates[:,1]
-    yy = coordinates[:,0]
+    xx = coordinates[:,0]
+    yy = coordinates[:,1]
 
     x_min, x_max = xx.min(), xx.max()
     y_min, y_max = yy.min(), yy.max()
@@ -119,7 +119,7 @@ def image_scatter(coordinates, images, img_size=50, scatter_size=8000, cval=1., 
         Image of visualization
     """
     print "--- Making image scatter ---"
-    
+
     assert len(coordinates) == len(images), "There should be the same amount of coordinates as images"
 
     if len(coordinates) == 0:
