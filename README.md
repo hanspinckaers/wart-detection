@@ -9,7 +9,7 @@
 - **Scikit-learn** built from source 0.18.dev0: I don't remember why I needed to built from source, but if you're seeing sklearn related errors, try to install it from source.
 - **SciPy** 0.17.1
 - **Numpy** 1.11.0
-- ** bh\_tsne**: To run test\_tsne.py **bh\_tsne** need to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
+- **bh_tsne (Barnes-Hut TSNE)**: To run ```test\_tsne.py``` **bh\_tsne** needs to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
 
 ### Python scripts:
 
