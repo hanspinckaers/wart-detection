@@ -3,8 +3,8 @@ import os
 import fnmatch
 import numpy as np
 from bhtsne import run_bh_tsne
-
 from image_scatter import image_scatter
+from image_scatter import min_resize
 from matplotlib import pyplot as plt
 
 # sift-tsne-10-features-per-img.png
@@ -34,7 +34,7 @@ for root, dirnames, filenames in os.walk("classified/warts_cream"):
 def get_features(images, n_features):
     featureVectors = np.zeros((len(images) * n_features, 128), dtype=np.float32)
     p_i = 0
-    
+
     for i, filename in enumerate(images):
         print filename
 
@@ -65,7 +65,7 @@ def get_features(images, n_features):
 
         featureVectors[p_i:p_i + len_features] = desc
         p_i = p_i + len_features
-        
+
         continue
 
     print p_i
@@ -82,12 +82,12 @@ if load_saved:
     # negative_features = negative_features[0:9000]
     wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
     wart_features_cream = wart_features_cream.astype(np.float32)
-    
+
 else:
     wart_features = get_features(warts, 50)
     wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0)
     np.save("wart_features", wart_features)
-    
+
     wart_features_cream = get_features(warts_cream, 50)
     wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
     np.save("warts_cream", wart_features_cream)
@@ -178,12 +178,23 @@ if not load_tsne:
 
 else:
     images = np.load("images.npy")
-    images = []
     labels = np.load("labels.npy")
     features_TSNE = np.load("tsne.npy")
 
-img = image_scatter(features_TSNE, images)
-img = img * 255
+# subset_features = features_TSNE[(features_TSNE[:, 0] < -30) & (features_TSNE[:, 1] > 0)]
+subset_features = features_TSNE
+
+for i, image in enumerate(images):
+    image = min_resize(image, 40)
+    image = cv2.copyMakeBorder(image, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=(255,255,255))
+
+    if labels[i] == 1:
+        images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(17,141,246))
+    else:
+        images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(245,219,10))
+
+
+img = image_scatter(subset_features, images[0:len(subset_features)], scatter_size=8000)
 cv2.imwrite("image_scatter.png", img)
 
 plt.scatter(features_TSNE[:, 0], features_TSNE[:, 1], c=labels, cmap="viridis")
@@ -191,4 +202,3 @@ plt.clim(-0.5, 9.5)
 figure = plt.gcf()  # get current figure
 figure.set_size_inches(35, 35)
 plt.savefig("sift-tsne-scatter.png", dpi=100, bbox_inches='tight')
-
