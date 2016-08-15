@@ -35,10 +35,6 @@ for root, dirnames, filenames in os.walk("classified/warts_cream"):
         warts_cream.append("classified/warts_cream" + "/" + filename)
 
 
-############################################
-################ WIP #######################
-############################################
-
 # http://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html
 
 #     if chunks[0] == 'sift':
@@ -135,10 +131,6 @@ def FREAK_descriptor(sensitivity, keypoints):
 
 # latch = cv2.xfeatures2d.LATCH_create()
 # _, desc = latch.compute(gray, kps)
-
-############################################
-################ /WIP ######################
-############################################
 
 
 def get_features(images, n_features):
