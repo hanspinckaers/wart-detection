@@ -6,6 +6,7 @@ from bhtsne import run_bh_tsne
 from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
+import pudb
 
 # symbols used for printing output
 CURSOR_UP_ONE = '\x1b[1A'
@@ -133,19 +134,59 @@ def FREAK_descriptor(sensitivity, keypoints):
 # _, desc = latch.compute(gray, kps)
 
 
-def get_features(images, n_features):
+def get_features(images, gray_detector=True, gray_descriptor=True, detector, descriptor, max_features=500):
+    """
+    This function runs detector.detect() on all images and returns all features in a numpy array
+
+    Parameters
+    ---------
+    images: array
+        The array of images to run the feature detection on
+
+    gray_detector: boolean
+        If True all images will be converted to grayscale before running detector
+
+    gray_descriptor: boolean
+        If True all images will be converted to grayscale before running descriptor
+
+    detector: object
+        Should be able to respond to detect() and return keypoints.
+
+    descriptor: list or numpy array
+        Corresponding images to features. Expects float images from (0,1).
+
+    max_features: integer
+        Maximum amount of features per image, needed to initialize array of features
+
+    Returns
+    ------
+    features: numpy array
+        array of all the descriptors of the features in images
+    """
     p_i = 0
     featureVectors = None
     for i, filename in enumerate(images):
         if i > 0:
             print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+
         print "--- Extracting features " + str(filename) + " ---"
 
         image = cv2.imread(filename)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        detector = SIFT_detector(2, n_features)
-        kps, desc = detector.detectAndCompute(gray, None)
+        if gray_detector or gray_descriptor:
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # detector = SIFT_detector(2, n_features)
+        if gray_detector:
+            kps = detector.detect(gray)
+        else:
+            kps = detector.detect(image)
+
+        if gray_descriptor:
+            _, desc = descriptor.compute(gray, kps)
+        else:
+            _, desc = descriptor.compute(image, kps)
+
 
         # test = cv2.drawKeypoints(gray, kps, image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         # cv2.imshow('test', test)
@@ -160,10 +201,7 @@ def get_features(images, n_features):
             continue
 
         if featureVectors is None:
-            featureVectors = np.zeros((len(images) * n_features * 2, desc.shape[1]), dtype=np.float32)
-
-        # if featureVectors[p_i:p_i + len_features].shape != desc.shape:
-        #    pu.db
+            featureVectors = np.zeros((len(images) * 500, desc.shape[1]), dtype=np.float32)  # max 500 features per image
 
         featureVectors[p_i:p_i + len_features] = desc
 
@@ -186,13 +224,15 @@ if load_saved:
     wart_features_cream = wart_features_cream.astype(np.float32)
 
 else:
-    wart_features = get_features(warts, 10)
-    wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0)
-    np.save("wart_features", wart_features)
+    n_features = 10
+    SIFT = SIFT_detector(2, n_features=n_features)
+    wart_features = get_features(warts, detector=SIFT, descriptor=SIFT)
+    # wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0) 
+    # np.save("wart_features", wart_features)
 
-    wart_features_cream = get_features(warts_cream, 10)
-    wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
-    np.save("warts_cream", wart_features_cream)
+    wart_features_cream = get_features(warts_cream, detector=SIFT, descriptor=SIFT)
+    # wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
+    # np.save("warts_cream", wart_features_cream)
 
 features = np.concatenate((wart_features, wart_features_cream))
 
