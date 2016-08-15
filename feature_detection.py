@@ -238,17 +238,18 @@ if not load_cache:
 
         kp, desc = sift.detectAndCompute(gray, None)
         if desc is None or len(desc) == 0:
+            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
             print "--- No features found for " + str(filename) + "--- \n"
             continue
 
         hist = extractor.compute(image, kp)
 
         if np.sum(hist) == 0:  # this shouldn't happen... histogram always sums to 1
-            print "hist == 0 no kps for " + str(filename)
+            print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
             continue
 
         histograms[i] = hist
-        labels[i] = 180
+        labels[i] = 1
         images.append(image)
 
     for i, filename in enumerate(warts_cream):
@@ -262,17 +263,18 @@ if not load_cache:
 
         kp, desc = sift.detectAndCompute(gray, None)
         if desc is None or len(desc) == 0:
-            print "no kps for " + str(filename)
+            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+            print "--- No features found for " + str(filename) + "--- \n"
             continue
 
         hist = extractor.compute(image, kp)
 
         if np.sum(hist) == 0:
-            print "hist == 0 no kps for " + str(filename)
+            print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
             continue
 
         histograms[i + len(warts)] = hist
-        labels[i + len(warts)] = 1
+        labels[i + len(warts)] = 180
         images.append(image)
 
     histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
@@ -298,7 +300,7 @@ for i, image in enumerate(images):
     image = min_resize(image, 40)
     image = cv2.copyMakeBorder(image, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=(255,255,255))
 
-    if labels[i] == 1:
+    if labels[i] == 180:
         images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(17,141,246))
     else:
         images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(245,219,10))
