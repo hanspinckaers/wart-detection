@@ -6,7 +6,35 @@ from bhtsne import run_bh_tsne
 from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
+import time
+
+# kmedoids
+from kmajority import kmajority
+
+from detectors_descriptors import get_detector, get_descriptor, norm_for_descriptor, get_features
 import pudb
+
+# arguments:
+detector_name = 'SIFT'
+descriptor_name = 'FREAK'
+n_features = 10
+sensitivity = 2
+norm = norm_for_descriptor(descriptor_name)
+matcher = 'BF'
+
+gray_detector = False
+gray_descriptor = False
+
+cached = True
+
+# could we use Bayesian optimization?
+
+arg_string = ' - detect ' + detector_name + ' - desc ' + descriptor_name + ' - n_feat ' + str(n_features) + ' - matcher ' + matcher
+print "----- Run with: " + arg_string
+print "----- Using cache: " + str(cached)
+
+if not os.path.exists("cache/"):
+    os.makedirs("cache/")
 
 # symbols used for printing output
 CURSOR_UP_ONE = '\x1b[1A'
@@ -36,286 +64,115 @@ for root, dirnames, filenames in os.walk("classified/warts_cream"):
         warts_cream.append("classified/warts_cream" + "/" + filename)
 
 
-# http://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html
+if not cached:
+    detector = get_detector(detector_name, sensitivity, n_features=n_features)
+    descriptor = get_descriptor(descriptor_name)
 
-#     if chunks[0] == 'sift':
-#         detector = cv2.xfeatures2d.SIFT_create()
-#         norm = cv2.NORM_L2
-#     elif chunks[0] == 'surf':
-#         detector = cv2.xfeatures2d.SURF_create(800)
-#         norm = cv2.NORM_L2
-#     elif chunks[0] == 'orb':
-#         detector = cv2.ORB_create(400)
-#         norm = cv2.NORM_HAMMING
-#     elif chunks[0] == 'akaze':
-#         detector = cv2.AKAZE_create()
-#         norm = cv2.NORM_HAMMING
-#     elif chunks[0] == 'brisk':
-#         detector = cv2.BRISK_create()
-#         norm = cv2.NORM_HAMMING
-
-# norm should be used in matches (currently brute force, use flann?!
-# see opencv/samples/python/find_obj.py
-
-# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#sift-sift
-def SIFT_detector(sensitivity, n_features):
-    if sensitivity == 2:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.01, edgeThreshold=20, sigma=0.4)
-    elif sensitivity == 1:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=10, sigma=0.4)
-    elif sensitivity == 0:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=7, sigma=0.4)
-    return sift
-
-
-# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-def SURF_detector(sensitivity, n_features):
-    if sensitivity == 2:
-        surf = cv2.xfeatures2d.SURF_create(hessianThreshold=10, nOctaves=1)
-    elif sensitivity == 1:
-        surf = cv2.xfeatures2d.SURF_create(hessianThreshold=30, nOctaves=1)
-    elif sensitivity == 0:
-        surf = cv2.xfeatures2d.SURF_create(hessianThreshold=50, nOctaves=2)
-    return surf
-
-
-# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-def AKAZE_detector(sensitivity, n_features):
-    if sensitivity == 2:
-        akaze = cv2.AKAZE_create(threshold=0.000001)
-    elif sensitivity == 1:
-        akaze = cv2.AKAZE_create(threshold=0.00001)
-    elif sensitivity == 0:
-        akaze = cv2.AKAZE_create(threshold=0.0001)
-    return akaze
-
-
-# http://docs.opencv.org/trunk/db/d95/classcv_1_1ORB.html#gsc.tab=0
-def ORB_detector(sensitivity, n_features):
-    if sensitivity == 2:
-        orb = cv2.ORB_create(n_features, edgeThreshold=10, patchSize=10)
-    elif sensitivity == 1:
-        orb = cv2.ORB_create(n_features)
-    elif sensitivity == 0:
-        orb = cv2.ORB_create(n_features)
-    return orb
-
-
-# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-# the BRISK implementation is broken in openCV (https://github.com/opencv/opencv/pull/3383)
-# def BRISK_detector(sensitivity, n_features):
-
-
-# cannot seem to get it working
-# http://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html?highlight=surffeaturedetector#StarFeatureDetector%20:%20public%20FeatureDetector
-def STAR_detector(sensitivity, n_features):
-    if sensitivity == 2:
-        star = cv2.xfeatures2d.StarDetector_create(responseThreshold=5, lineThresholdProjected=5)
-    elif sensitivity == 1:
-        star = cv2.xfeatures2d.StarDetector_create()
-    elif sensitivity == 0:
-        star = cv2.xfeatures2d.StarDetector_create()
-    return star
-
-
-# http://docs.opencv.org/3.1.0/df/db4/classcv_1_1xfeatures2d_1_1FREAK.html#gsc.tab=0
-# NB only descriptor!
-# diffusivity
-def FREAK_descriptor(sensitivity, keypoints):
-    if sensitivity == 2:
-        freak = cv2.xfeatures2d.FREAK_create(patternScale=10.)
-    elif sensitivity == 1:
-        freak = cv2.xfeatures2d.SURF_create(hessianThreshold=30, nOctaves=1)
-    elif sensitivity == 0:
-        freak = cv2.xfeatures2d.SURF_create(hessianThreshold=50, nOctaves=2)
-    return freak
-
-# latch = cv2.xfeatures2d.LATCH_create()
-# _, desc = latch.compute(gray, kps)
-
-
-def get_features(images, gray_detector=True, gray_descriptor=True, detector, descriptor, max_features=500):
-    """
-    This function runs detector.detect() on all images and returns all features in a numpy array
-
-    Parameters
-    ---------
-    images: array
-        The array of images to run the feature detection on
-
-    gray_detector: boolean
-        If True all images will be converted to grayscale before running detector
-
-    gray_descriptor: boolean
-        If True all images will be converted to grayscale before running descriptor
-
-    detector: object
-        Should be able to respond to detect() and return keypoints.
-
-    descriptor: list or numpy array
-        Corresponding images to features. Expects float images from (0,1).
-
-    max_features: integer
-        Maximum amount of features per image, needed to initialize array of features
-
-    Returns
-    ------
-    features: numpy array
-        array of all the descriptors of the features in images
-    """
-    p_i = 0
-    featureVectors = None
-    for i, filename in enumerate(images):
-        if i > 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-
-        print "--- Extracting features " + str(filename) + " ---"
-
-        image = cv2.imread(filename)
-
-        if gray_detector or gray_descriptor:
-            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # detector = SIFT_detector(2, n_features)
-        if gray_detector:
-            kps = detector.detect(gray)
-        else:
-            kps = detector.detect(image)
-
-        if gray_descriptor:
-            _, desc = descriptor.compute(gray, kps)
-        else:
-            _, desc = descriptor.compute(image, kps)
-
-
-        # test = cv2.drawKeypoints(gray, kps, image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-        # cv2.imshow('test', test)
-        # cv2.waitKey(0)
-
-        if desc is None:
-            continue
-
-        len_features = desc.shape[0]
-
-        if len_features == 0:
-            continue
-
-        if featureVectors is None:
-            featureVectors = np.zeros((len(images) * 500, desc.shape[1]), dtype=np.float32)  # max 500 features per image
-
-        featureVectors[p_i:p_i + len_features] = desc
-
-        p_i = p_i + len_features
-
-        continue
-    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-
-    return featureVectors[0: p_i + 1]
-
-load_saved = False
-
-if load_saved:
-    wart_features = np.load("wart_features.npy")
-    wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0)
+    wart_features = get_features(warts, detector=detector, descriptor=descriptor, gray_detector=gray_detector, gray_descriptor=gray_descriptor)
+    # wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0)
+    np.save("cache/wart_features" + arg_string, wart_features)
+    
+    wart_features_cream = get_features(warts_cream, detector=detector, descriptor=descriptor)
+    # wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
+    np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
+else:
+    print "Loading features from cache"
+    wart_features = np.load("cache/wart_features" + arg_string + ".npy")
     wart_features = wart_features.astype(np.float32)
 
-    wart_features_cream = np.load("warts_cream.npy")
-    wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
+    wart_features_cream = np.load("cache/warts_cream_features" + arg_string + ".npy")
     wart_features_cream = wart_features_cream.astype(np.float32)
-
-else:
-    n_features = 10
-    SIFT = SIFT_detector(2, n_features=n_features)
-    wart_features = get_features(warts, detector=SIFT, descriptor=SIFT)
-    # wart_features = np.delete(wart_features, np.where(~wart_features.any(axis=1))[0], 0) 
-    # np.save("wart_features", wart_features)
-
-    wart_features_cream = get_features(warts_cream, detector=SIFT, descriptor=SIFT)
-    # wart_features_cream = np.delete(wart_features_cream, np.where(~wart_features_cream.any(axis=1))[0], 0)
-    # np.save("warts_cream", wart_features_cream)
 
 features = np.concatenate((wart_features, wart_features_cream))
 
+# local bug numba
 # train the bag of words
-if False:
-    vocabulary = np.load("vocabulary.npy")
-else:
+if cached:
     print "--- Training BOW (can take a long time) ---"
+    if norm == cv2.NORM_L2:
+        bow = cv2.BOWKMeansTrainer(1000)
+        bow.add(features)
+        vocabulary = bow.cluster()
+    else:
+        # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
+        binary_vectors = np.unpackbits(features.astype(np.ubyte), axis=1)
+        vocabulary = kmajority(features.astype(int), 1000)
 
-    bow = cv2.BOWKMeansTrainer(1000)
-    bow.add(features)
-    vocabulary = bow.cluster()
+    np.save("cache/vocabulary" + arg_string, vocabulary)
+else:
+    print "Loading vocabulary from cache"
+    vocabulary = np.load("cache/vocabulary" + arg_string + ".npy")
+    pu.db
 
-    np.save("vocabulary", vocabulary)
+# FlannMatcher broken in 3.1.0, pull request that fixes it: https://github.com/opencv/opencv/issues/5667
+# should built openCV from source!
+# Could use DescriptorMatcher_create?
+if matcher == 'Flann':
+    print "--- Using Flann ---"
+    FLANN_INDEX_KDTREE = 1  # bug: flann enums are missing
+    FLANN_INDEX_LSH = 6
 
-# index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
-# search_params = dict(checks = 50)
-# matcher = cv2.FlannBasedMatcher(index_params, search_params)
+    if norm == cv2.NORM_L2:
+        flann_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+    else:
+        flann_params = dict(algorithm=FLANN_INDEX_LSH,table_number=20, key_size=10, multi_probe_level=2)
 
-# make a matcher to bag of words
-matcher = cv2.BFMatcher()
+    matcher = cv2.FlannBasedMatcher(flann_params, {})  # bug : need to pass empty dict (#1329)
+else:
+    matcher = cv2.BFMatcher(norm, crossCheck=True)
 
-sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4)
-extractor = cv2.BOWImgDescriptorExtractor(sift, matcher)
-extractor.setVocabulary(vocabulary)
 
-histograms = np.zeros((len(warts) + len(warts_cream), 1000), dtype=np.float32)
-labels = np.zeros(len(warts) + len(warts_cream))
+if cached:
+    detector = get_detector(detector_name, sensitivity, n_features=n_features)
+    descriptor = get_descriptor(descriptor_name)
 
-images = []
+    extractor = cv2.BOWImgDescriptorExtractor(descriptor, matcher)
+    extractor.setVocabulary(vocabulary)
 
-load_cache = False
-if not load_cache:
-    # double code: should be a function
-    for i, filename in enumerate(warts):
-        if i > 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+    matcher.add([1, vocabulary])
 
-        print "--- Creating histograms " + str(filename) + " ---"
+    histograms = np.zeros((len(warts) + len(warts_cream), 1000), dtype=np.float32)
+    labels = np.zeros(len(warts) + len(warts_cream))
 
-        image = cv2.imread(filename)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    images = []
 
-        kp, desc = sift.detectAndCompute(gray, None)
-        if desc is None or len(desc) == 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-            print "--- No features found for " + str(filename) + "--- \n"
-            continue
+    for images in [warts, warts_cream]:
+        for i, filename in enumerate(images):
+            if i > 0:
+                print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
 
-        hist = extractor.compute(image, kp)
+            print "--- Creating histograms " + str(filename) + " ---"
 
-        if np.sum(hist) == 0:  # this shouldn't happen... histogram always sums to 1
-            print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
-            continue
+            image = cv2.imread(filename)
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        histograms[i] = hist
-        labels[i] = 1
-        images.append(image)
+            kps = detector.detect(gray, None)
+            if kps is None or len(kps) == 0:
+                print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+                print "--- No features found for " + str(filename) + "--- \n"
+                continue
 
-    for i, filename in enumerate(warts_cream):
-        if i > 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+            if gray_descriptor:
+                _, desc = descriptor.compute(gray, kps)
+            else:
+                _, desc = descriptor.compute(image, kps)
 
-        print "--- Creating histograms " + str(filename) + " ---"
+            # desc = desc.astype(np.float32)
+            # pu.db
+            matcher.match(desc)
+            matches = matcher.match(desc, vocabulary)
 
-        image = cv2.imread(filename)
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            # pu.db
 
-        kp, desc = sift.detectAndCompute(gray, None)
-        if desc is None or len(desc) == 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-            print "--- No features found for " + str(filename) + "--- \n"
-            continue
+            hist = extractor.compute(gray, kps)
 
-        hist = extractor.compute(image, kp)
+            if np.sum(hist) == 0:  # this shouldn't happen... histogram always sums to 1
+                print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
+                continue
 
-        if np.sum(hist) == 0:
-            print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
-            continue
-
-        histograms[i + len(warts)] = hist
-        labels[i + len(warts)] = 180
-        images.append(image)
+            histograms[i] = hist
+            labels[i] = 1
+            images.append(image)
 
     histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
     labels = np.delete(labels, np.where(labels == 0), 0)
@@ -324,14 +181,14 @@ if not load_cache:
 
     features_TSNE = run_bh_tsne(histograms, verbose=True)
 
-    np.save("images", images)
-    np.save("tsne", features_TSNE)
-    np.save("labels", labels)
+    np.save("cache/images" + arg_string, images)
+    np.save("cache/tsne" + arg_string, features_TSNE)
+    np.save("cache/labels" + arg_string, labels)
 
 else:
-    images = np.load("images.npy")
-    labels = np.load("labels.npy")
-    features_TSNE = np.load("tsne.npy")
+    images = np.load("cache/images" + arg_string + ".npy")
+    labels = np.load("cache/labels" + arg_string + ".npy")
+    features_TSNE = np.load("cache/tsne" + arg_string + ".npy")
 
 # subset_features = features_TSNE[(features_TSNE[:, 0] < -30) & (features_TSNE[:, 1] > 0)]
 subset_features = features_TSNE
@@ -345,12 +202,13 @@ for i, image in enumerate(images):
     else:
         images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(245,219,10))
 
+# make plots
 
 img = image_scatter(subset_features, images[0:len(subset_features)], scatter_size=8000)
-cv2.imwrite("image_scatter.png", img)
+cv2.imwrite("results/image_scatter" + arg_string + ".png", img)
 
 plt.scatter(features_TSNE[:, 0], features_TSNE[:, 1], c=labels, cmap="viridis")
 plt.clim(-0.5, 9.5)
 figure = plt.gcf()  # get current figure
 figure.set_size_inches(35, 35)
-plt.savefig("tsne-scatter.png", dpi=100, bbox_inches='tight')
+plt.savefig("results/tsne_scatter" + arg_string + ".png", dpi=100, bbox_inches='tight')
