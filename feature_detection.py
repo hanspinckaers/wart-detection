@@ -108,7 +108,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     # Flann matcher of openCV is quite buggy
     # So we can only use the BF matches when using Eaclidean distance
     if norm == cv2.NORM_L2:
-        matcher = cv2.BFMatcher(norm, crossCheck=True)
+        matcher = cv2.BFMatcher()
 
     hist_cache = False
     if os.path.isfile("cache/images" + arg_string + ".npy") and os.path.isfile("cache/labels" + arg_string + ".npy") and os.path.isfile("cache/tsne" + arg_string + ".npy"):
@@ -122,7 +122,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
             extractor = cv2.BOWImgDescriptorExtractor(descriptor, matcher)
             extractor.setVocabulary(vocabulary)
 
-        histograms = np.zeros((len(warts) + len(warts_cream), 1000), dtype=np.float32)
+        histograms = np.zeros((len(warts) + len(warts_cream), bow_size), dtype=np.float32)
         labels = np.zeros(len(warts) + len(warts_cream))
 
         images = []
@@ -137,7 +137,11 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 image = cv2.imread(filename)
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-                kps = detector.detect(gray, None)
+                if gray_detector:
+                    kps = detector.detect(gray, None)
+                else:
+                    kps = detector.detect(image, None)
+
                 if kps is None or len(kps) == 0:
                     print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
                     print "--- No features found for " + str(filename) + "--- \n"
