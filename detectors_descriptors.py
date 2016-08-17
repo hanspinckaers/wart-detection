@@ -63,8 +63,6 @@ def get_features(images, detector, descriptor, max_features=500, gray_detector=T
         else:
             _, desc = descriptor.compute(image, kps)
 
-        pu.db
-
         # test = cv2.drawKeypoints(gray, kps, image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
         # cv2.imshow('test', test)
         # cv2.waitKey(0)
@@ -221,6 +219,7 @@ def Agast_detector(sensitivity, n_features):
 
 
 # http://docs.opencv.org/trunk/df/d21/classcv_1_1GFTTDetector.html#gsc.tab=0
+# J. Shi and C. Tomasi. Good Features to Track. Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 593-600, June 1994.
 def GFTT_detector(sensitivity, n_features):
     if sensitivity == 2:
         gftt = cv2.GFTTDetector_create(maxCorners=n_features)
