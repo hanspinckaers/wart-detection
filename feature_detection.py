@@ -21,14 +21,14 @@ import pudb
 # gray_descriptor = False
 
 
-def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True):
-    cached = False
+def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=True):
     norm = norm_for_descriptor(descriptor_name)
 
     # could we use Bayesian optimization?
-    arg_string = ' - detect ' + detector_name + ' - desc ' + descriptor_name + ' - n_feat ' + str(n_features)
+    arg_string = ' - det ' + detector_name + ' - desc ' + descriptor_name + ' - n ' + str(n_features) + ' - s ' + str(sensitivity) + ' - bow ' + str(bow_size)
+
     print "----- Run with: " + arg_string
-    print "----- Using cache: " + str(cached)
+    print "----- Using cache: " + str(cache)
 
     if not os.path.exists("cache/"):
         os.makedirs("cache/")
@@ -59,13 +59,17 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         for filename in fnmatch.filter(filenames, '*.png'):
             warts_cream.append("classified/warts_cream" + "/" + filename)
 
-    if not cached:
+    feature_cache = False
+    if os.path.isfile("cache/wart_features" + arg_string + ".npy") and os.path.isfile("cache/warts_cream_features" + arg_string + ".npy"):
+        feature_cache = True
+
+    if not feature_cache or not cache:
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
         descriptor = get_descriptor(descriptor_name)
 
         wart_features = get_features(warts, detector=detector, descriptor=descriptor, gray_detector=gray_detector, gray_descriptor=gray_descriptor)
         np.save("cache/wart_features" + arg_string, wart_features)
-     
+
         wart_features_cream = get_features(warts_cream, detector=detector, descriptor=descriptor)
         np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
     else:
@@ -80,7 +84,11 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
     # local bug numba
     # train the bag of words
-    if not cached:
+    bow_cache = False
+    if os.path.isfile("cache/vocabulary" + arg_string + ".npy"):
+        bow_cache = True
+
+    if not bow_cache or not cache:
         print "--- Training BOW (can take a long time) ---"
         if norm == cv2.NORM_L2:
             bow = cv2.BOWKMeansTrainer(bow_size)
@@ -88,7 +96,6 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
             vocabulary = bow.cluster()
         else:
             # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
-            binary_vectors = np.unpackbits(features.astype(np.ubyte), axis=1)
             vocabulary = kmajority(features.astype(int), bow_size)
 
         np.save("cache/vocabulary" + arg_string, vocabulary)
@@ -103,7 +110,11 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if norm == cv2.NORM_L2:
         matcher = cv2.BFMatcher(norm, crossCheck=True)
 
-    if cached:
+    hist_cache = False
+    if os.path.isfile("cache/images" + arg_string + ".npy") and os.path.isfile("cache/labels" + arg_string + ".npy") and os.path.isfile("cache/tsne" + arg_string + ".npy"):
+        hist_cache = True
+
+    if not hist_cache or not cache:
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
         descriptor = get_descriptor(descriptor_name)
 
