@@ -92,9 +92,6 @@ def kmajority(vectors, k):
         j += 1
         print("--- Run: %s changed %s bits in %.3f seconds" % (str(j), str(overall_bits_changed), time.time() - start_time))
 
-        if overall_bits_changed < 4:
-            break
-
         last_runs = (overall_bits_changed < 10)
 
     print("--- Overall kmajority %.3f seconds -" % (time.time() - overall_start_time))
