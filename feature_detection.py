@@ -2,14 +2,15 @@ import cv2
 import os
 import fnmatch
 import numpy as np
+import time
+
 from bhtsne import run_bh_tsne
 from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
 from kmajority import kmajority, compute_hamming_hist
-
 from detectors_descriptors import get_detector, get_descriptor, norm_for_descriptor, get_features
-import pudb
+# import pudb
 
 # # arguments:
 # detector_name = 'SIFT'
@@ -21,7 +22,9 @@ import pudb
 # gray_descriptor = False
 
 
-def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=True):
+def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=False):
+    overall_start_time = time.time()
+
     norm = norm_for_descriptor(descriptor_name)
 
     # could we use Bayesian optimization?
@@ -32,6 +35,9 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
     if not os.path.exists("cache/"):
         os.makedirs("cache/")
+
+    if not os.path.exists("results/"):
+        os.makedirs("results/")
 
     # symbols used for printing output
     CURSOR_UP_ONE = '\x1b[1A'
@@ -65,13 +71,15 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
     if not feature_cache or not cache:
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
-        descriptor = get_descriptor(descriptor_name)
+        descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
 
         wart_features = get_features(warts, detector=detector, descriptor=descriptor, gray_detector=gray_detector, gray_descriptor=gray_descriptor)
-        np.save("cache/wart_features" + arg_string, wart_features)
+        if cache:
+            np.save("cache/wart_features" + arg_string, wart_features)
 
         wart_features_cream = get_features(warts_cream, detector=detector, descriptor=descriptor)
-        np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
+        if cache:
+            np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
     else:
         print "Loading features from cache"
         wart_features = np.load("cache/wart_features" + arg_string + ".npy")
@@ -81,6 +89,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         wart_features_cream = wart_features_cream.astype(np.float32)
 
     features = np.concatenate((wart_features, wart_features_cream))
+    np.random.RandomState(1)
+    np.random.shuffle(features)
 
     # local bug numba
     # train the bag of words
@@ -98,7 +108,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
             # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
             vocabulary = kmajority(features.astype(int), bow_size)
 
-        np.save("cache/vocabulary" + arg_string, vocabulary)
+        if cache:
+            np.save("cache/vocabulary" + arg_string, vocabulary)
     else:
         print "Loading vocabulary from cache"
         vocabulary = np.load("cache/vocabulary" + arg_string + ".npy")
@@ -114,9 +125,9 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if os.path.isfile("cache/images" + arg_string + ".npy") and os.path.isfile("cache/labels" + arg_string + ".npy") and os.path.isfile("cache/tsne" + arg_string + ".npy"):
         hist_cache = True
 
-    if not hist_cache or not cache:
+    if not hist_cache or cache:
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
-        descriptor = get_descriptor(descriptor_name)
+        descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
 
         if norm == cv2.NORM_L2:
             extractor = cv2.BOWImgDescriptorExtractor(descriptor, matcher)
@@ -127,6 +138,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
         images = []
         i = 0
+        no_feat_counter = 0
         for label, wart_imgs in enumerate([warts_cream, warts]):
             for filename in wart_imgs:
                 if i > 0:
@@ -143,8 +155,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                     kps = detector.detect(image, None)
 
                 if kps is None or len(kps) == 0:
-                    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-                    print "--- No features found for " + str(filename) + "--- \n"
+                    no_feat_counter += 1
                     continue
 
                 if norm == cv2.NORM_L2:
@@ -160,8 +171,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                         _, desc = descriptor.compute(image, kps)
 
                     if desc is None or len(kps) == 0:
-                        print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-                        print "--- No features found for " + str(filename) + "--- \n"
+                        no_feat_counter += 1
                         continue
 
                     hist = compute_hamming_hist(desc, vocabulary)
@@ -175,16 +185,20 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 i += 1
                 images.append(image)
 
+        if no_feat_counter > 0:
+            print "--- No histograms for %s images ---" % str(no_feat_counter)
+
         histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
         labels = np.delete(labels, np.where(labels == 0), 0)
 
         print "--- Run TSNE " + str(filename) + " ---"
 
-        features_TSNE = run_bh_tsne(histograms, verbose=True)
+        features_TSNE = run_bh_tsne(histograms, verbose=False)
 
-        np.save("cache/images" + arg_string, images)
-        np.save("cache/tsne" + arg_string, features_TSNE)
-        np.save("cache/labels" + arg_string, labels)
+        if cache:
+            np.save("cache/images" + arg_string, images)
+            np.save("cache/tsne" + arg_string, features_TSNE)
+            np.save("cache/labels" + arg_string, labels)
 
     else:
         images = np.load("cache/images" + arg_string + ".npy")
@@ -204,12 +218,14 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
             images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(245,219,10))
 
     # make plots
-
     img = image_scatter(subset_features, images[0:len(subset_features)], scatter_size=8000)
     cv2.imwrite("results/image_scatter" + arg_string + ".png", img)
 
+    plt.clf()
     plt.scatter(features_TSNE[:, 0], features_TSNE[:, 1], c=labels, cmap="viridis")
     plt.clim(-0.5, 9.5)
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(35, 35)
     plt.savefig("results/tsne_scatter" + arg_string + ".png", dpi=100, bbox_inches='tight')
+
+    print("--- Overall in %.3f seconds -" % (time.time() - overall_start_time))
