@@ -132,20 +132,25 @@ def norm_for_descriptor(name):
     return cv2.NORM_L2
 
 
-def get_descriptor(name):
+def get_descriptor(name, sensitivity, n_features):
     desc = None
     if name == 'SIFT':
-        desc = cv2.xfeatures2d.SIFT_create()
+        detector_func = SIFT_detector
+        return detector_func(sensitivity, n_features)
     elif name == 'SURF':
-        desc = cv2.xfeatures2d.SURF_create()
+        detector_func = SURF_detector
+        return detector_func(sensitivity, n_features)
     elif name == 'AKAZE':  # AKAZE detector can only be used with the AKAZE descriptor
-        desc = cv2.AKAZE_create()
+        detector_func = AKAZE_detector
+        return detector_func(sensitivity, n_features)
     elif name == 'ORB':
-        desc = cv2.ORB_create()
+        detector_func = ORB_detector
+        return detector_func(sensitivity, n_features)
     elif name == 'BRIEF':
         desc = cv2.BriefDescriptorExtractor_create()
     elif name == 'FREAK':
-        desc = cv2.xfeatures2d.FREAK_create(patternScale=10.)  # FREAK is the retina descriptor
+        detector_func = FREAK_descriptor
+        return detector_func(sensitivity, n_features)
     elif name == 'BRISK':
         desc = cv2.BRISK_create()
 
