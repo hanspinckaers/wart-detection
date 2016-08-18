@@ -53,7 +53,7 @@ def kmajority(vectors, k):
             splitted_vectors[-1] = np.append(splitted_vectors[-1], leftover, axis=0)
 
         # start parallel jobs to find closest centroid for each vector
-        results = Parallel(n_jobs=num_cores)(delayed(closest_dist)(vecs, centroids, k) for vecs in splitted_vectors)
+        results = Parallel(n_jobs=num_cores)(delayed(closest_dist)(vecs, unique_i, centroids, k) for unique_i, vecs in enumerate(splitted_vectors))
         cen_per_vec = np.concatenate(results)
 
         print("--- kmajority %.3f seconds" % (time.time() - start_time))
@@ -102,8 +102,8 @@ def kmajority(vectors, k):
     return centroids
 
 
-def closest_dist(vecs, centroids, k):
-    filename = '_t_vectors_job_' + str(randint(0, 5000))  # create random filename for kmajority
+def closest_dist(vecs, unique_i, centroids, k):
+    filename = '_t_vectors_job_' + str(unique_i)  # create random filename for kmajority
 
     np.savetxt(filename, vecs, fmt='%i')
 
