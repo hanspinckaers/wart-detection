@@ -7,7 +7,6 @@ import os
 import multiprocessing
 
 from subprocess import check_output
-from random import randint
 
 
 def kmajority(vectors, k):
@@ -27,7 +26,7 @@ def kmajority(vectors, k):
     print("--- Start kmajority with n vectors = " + str(len(vectors)))
 
     # we use files to send vectors to kmajority c binary
-    np.savetxt('_t_vectors', vectors, fmt='%i')
+    np.savetxt('_t_vectors_' + str(os.getpid()), vectors, fmt='%i')
 
     # when we are really close log which centroids are changing (check to see if we are converging)
     last_runs = False
@@ -41,7 +40,7 @@ def kmajority(vectors, k):
         start_time = time.time()
 
         # save new centroids for kmajority c binary
-        np.savetxt('_t_centroids', centroids, fmt='%i')
+        np.savetxt('_t_centroids_' + str(os.getpid()), centroids, fmt='%i')
 
         # divide the vectors and parallelize the search for closest centroids
         divide_by = float(num_cores)
@@ -96,14 +95,14 @@ def kmajority(vectors, k):
 
     print("--- Overall kmajority %.3f seconds -" % (time.time() - overall_start_time))
 
-    os.remove('_t_vectors')
-    os.remove('_t_centroids')
+    os.remove('_t_vectors_' + str(os.getpid()))
+    os.remove('_t_centroids_' + str(os.getpid()))
 
     return centroids
 
 
 def closest_dist(vecs, unique_i, centroids, k):
-    filename = '_t_vectors_job_' + str(unique_i)  # create random filename for kmajority
+    filename = '_t_vectors_job_' + str(os.getpid()) + str(unique_i)  # create random filename for kmajority
 
     np.savetxt(filename, vecs, fmt='%i')
 
