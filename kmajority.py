@@ -55,7 +55,7 @@ def kmajority(vectors, k):
         results = Parallel(n_jobs=num_cores)(delayed(closest_dist)(vecs, unique_i, centroids, k) for unique_i, vecs in enumerate(splitted_vectors))
         cen_per_vec = np.concatenate(results)
 
-        print("--- kmajority %.3f seconds" % (time.time() - start_time))
+        # print("--- kmajority %.3f seconds" % (time.time() - start_time))
 
         # majority voting as in Graba et al. A Fast Approach for Integrating ORB Descriptors in the Bag of Words Model 2013
         bin_centroids = np.unpackbits(centroids.astype(np.ubyte), axis=1)
@@ -85,11 +85,11 @@ def kmajority(vectors, k):
 
                 overall_bits_changed += np.sum(diff)
 
-                if last_runs:
-                    print str(c_i) + " changed " + str(np.sum(diff)) + " bits"
+                # if last_runs:
+                #    print str(c_i) + " changed " + str(np.sum(diff)) + " bits"
 
         j += 1
-        print("--- Run: %s changed %s bits in %.3f seconds" % (str(j), str(overall_bits_changed), time.time() - start_time))
+        # print("--- Run: %s changed %s bits in %.3f seconds" % (str(j), str(overall_bits_changed), time.time() - start_time))
 
         last_runs = (overall_bits_changed < 10)
 

@@ -42,10 +42,10 @@ def get_features(images, detector, descriptor, max_features=500, gray_detector=T
     p_i = 0
     featureVectors = None
     for i, filename in enumerate(images):
-        if i > 0:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+        # if i > 0:
+        #    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
 
-        print "--- Extracting features " + str(filename) + " ---"
+        # print "--- Extracting features " + str(filename) + " ---"
 
         image = cv2.imread(filename)
 
@@ -84,7 +84,7 @@ def get_features(images, detector, descriptor, max_features=500, gray_detector=T
 
         continue
 
-    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+    # print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
 
     return featureVectors[0: p_i + 1]
 
