@@ -141,10 +141,10 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         no_feat_counter = 0
         for label, wart_imgs in enumerate([warts_cream, warts]):
             for filename in wart_imgs:
-                if i > 0:
-                    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+                # if i > 0:
+                #    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
 
-                print "--- Creating histograms " + str(filename) + " ---"
+                # print "--- Creating histograms " + str(filename) + " ---"
 
                 image = cv2.imread(filename)
                 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
