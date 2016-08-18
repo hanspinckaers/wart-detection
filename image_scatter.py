@@ -400,12 +400,12 @@ def image_scatter(coordinates, images, img_size=50, scatter_size=8000, cval=1., 
             # finally apply the vectors
             coords = (coords - overall_vectors).astype(int)
 
-            if n_j > 1:
-                print(CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE)
+            # if n_j > 1:
+            #     print(CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE)
 
-            print("--- Run %s: %.3f seconds - %.3f avg movement - %s moved ---" % (n_j, time.time() - start_time, avg_movement, overall_n))
+            # print("--- Run %s: %.3f seconds - %.3f avg movement - %s moved ---" % (n_j, time.time() - start_time, avg_movement, overall_n))
 
-        print(CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE)
+        # print(CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE)
         print("--- Overall run (n=%s) took: %.2f min" % (n_j, (time.time() - overall_start_time) / 60))
 
     coords -= coords.min(axis=0)  # translate whole canvas to (0,0)

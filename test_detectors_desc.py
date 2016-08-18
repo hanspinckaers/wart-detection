@@ -26,20 +26,18 @@ bow_size = [200, 1000, 500]  # too small bag of words: not representative of all
 
 first = True
 
-num_cores = multiprocessing.cpu_count()
+num_cores = round(multiprocessing.cpu_count() / 4)
 
-results = Parallel(n_jobs=num_cores)(delayed(analyze_images)(det_dec[0], det_dec[1], n, s, b)
-                                     for det_dec in combinations
-                                     for n in n_features
-                                     for s in sensitivity
-                                     for b in bow_size)
 
-# for det_dec in combinations:
-#     for n in n_features:
-#         for s in sensitivity:
-#             for b in bow_size:
-#                 try:
-#                     analyze_images(det_dec[0], det_dec[1], n, s, b)
-#                 except:
-#                     print "Error in this loop!"
-#                 print "----------------------------------------------\n\n"
+def analyze(args):
+    analyze_images(args[0], args[1], args[2], args[3], args[4])
+
+combi_args = []
+
+for det_dec in combinations:
+    for n in n_features:
+        for s in sensitivity:
+            for b in bow_size:
+                    combi_args.append((det_dec[0], det_dec[1], n, s, b))
+
+results = Parallel(n_jobs=num_cores)(delayed(analyze)(arg) for arg in combi_args)

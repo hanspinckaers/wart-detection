@@ -30,8 +30,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     # could we use Bayesian optimization?
     arg_string = ' - det ' + detector_name + ' - desc ' + descriptor_name + ' - n ' + str(n_features) + ' - s ' + str(sensitivity) + ' - bow ' + str(bow_size)
 
-    print "----- Run with: " + arg_string
-    print "----- Using cache: " + str(cache)
+    print str(os.getpid()) + "----- Run with: " + arg_string
+    print str(os.getpid()) + "----- Using cache: " + str(cache)
 
     if not os.path.exists("cache/"):
         os.makedirs("cache/")
@@ -70,6 +70,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         feature_cache = True
 
     if not feature_cache or not cache:
+        print str(os.getpid()) + "--- Create features ---"
+
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
         descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
 
@@ -81,7 +83,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         if cache:
             np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
     else:
-        print "Loading features from cache"
+        print str(os.getpid()) + "Loading features from cache"
         wart_features = np.load("cache/wart_features" + arg_string + ".npy")
         wart_features = wart_features.astype(np.float32)
 
@@ -99,7 +101,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         bow_cache = True
 
     if not bow_cache or not cache:
-        print "--- Training BOW (can take a long time) ---"
+        print str(os.getpid()) + "--- Training BOW (can take a while) ---"
         if norm == cv2.NORM_L2:
             bow = cv2.BOWKMeansTrainer(bow_size)
             bow.add(features)
@@ -111,7 +113,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         if cache:
             np.save("cache/vocabulary" + arg_string, vocabulary)
     else:
-        print "Loading vocabulary from cache"
+        print str(os.getpid()) + "Loading vocabulary from cache"
         vocabulary = np.load("cache/vocabulary" + arg_string + ".npy")
         if norm != cv2.NORM_L2:
             vocabulary = vocabulary.astype(int)
@@ -126,6 +128,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         hist_cache = True
 
     if not hist_cache or cache:
+        print str(os.getpid()) + "--- Create histograms ---"
+
         detector = get_detector(detector_name, sensitivity, n_features=n_features)
         descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
 
@@ -186,12 +190,12 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 images.append(image)
 
         if no_feat_counter > 0:
-            print "--- No histograms for %s images ---" % str(no_feat_counter)
+            print str(os.getpid()) + "--- No histograms for %s images ---" % str(no_feat_counter)
 
         histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
         labels = np.delete(labels, np.where(labels == 0), 0)
 
-        print "--- Run TSNE ---"
+        print str(os.getpid()) + "--- Run TSNE ---"
 
         features_TSNE = run_bh_tsne(histograms, verbose=False)
 
@@ -228,4 +232,4 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     figure.set_size_inches(35, 35)
     plt.savefig("results/tsne_scatter" + arg_string + ".png", dpi=100, bbox_inches='tight')
 
-    print("--- Overall in %.3f seconds -" % (time.time() - overall_start_time))
+    print(str(os.getpid()) + "--- Overall in %.3f seconds -" % (time.time() - overall_start_time))
