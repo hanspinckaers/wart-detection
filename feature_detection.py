@@ -191,7 +191,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         histograms = np.delete(histograms, np.where(~histograms.any(axis=1))[0], 0)
         labels = np.delete(labels, np.where(labels == 0), 0)
 
-        print "--- Run TSNE " + str(filename) + " ---"
+        print "--- Run TSNE ---"
 
         features_TSNE = run_bh_tsne(histograms, verbose=False)
 
