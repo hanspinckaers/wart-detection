@@ -11,7 +11,7 @@
 - **Numpy** 1.11.0
 - **Joblib**
 - **kmajority.c**: build with ```clang -Ofast -o kmajority kmajority.c``` or ```gcc -Ofast -o kmajority kmajority.c```
-- **bh_tsne (Barnes-Hut TSNE)**: To run ```test_tsne.py``` **bh\_tsne** needs to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project.
+- **bh_tsne (Barnes-Hut TSNE)**: To run ```test_tsne.py``` **bh\_tsne** needs to be installed, follow instructions on: <https://github.com/lvdmaaten/bhtsne>. Make sure that the bh_tsne executable in in the root folder of the project. Use cygwin on Windows for compilation.
 
 ### Python scripts:
 
