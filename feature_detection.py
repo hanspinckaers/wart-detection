@@ -134,7 +134,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         i = 0
         no_feat_counter = 0
         for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
-            for i, descs in enumerate(wart_imgs):
+            for descs in wart_imgs:
                 if len(descs) == 0:
                         continue
 
