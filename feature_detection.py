@@ -134,7 +134,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         i = 0
         no_feat_counter = 0
         for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
-            for descs in wart_imgs:
+            for j, descs in enumerate(wart_imgs):
                 if len(descs) == 0:
                         continue
 
@@ -163,10 +163,10 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 if label == 0:
                     if i > len(warts_cream) - 1:
                         pu.db
-                    img = cv2.imread(warts_cream[i])
+                    img = cv2.imread(warts_cream[j])
                     images.append(img)
                 else:
-                    img = cv2.imread(warts[i])
+                    img = cv2.imread(warts[j])
                     images.append(img)
 
                 i += 1
