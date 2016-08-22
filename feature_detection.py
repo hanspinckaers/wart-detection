@@ -64,7 +64,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         print str(os.getpid()) + "--- Create features ---"
 
         wart_features_per_img = get_features_array(warts, sensitivity=sensitivity, detector=detector_name, max_features=n_features, descriptor=descriptor_name, gray_detector=gray_detector, gray_descriptor=gray_descriptor, testing=testing)
-	wart_features = [item for sublist in wart_features_per_img for item in sublist]
+        wart_features = [item for sublist in wart_features_per_img for item in sublist]
         wart_features = np.asarray(wart_features)
         if cache:
             np.save("cache/wart_features" + arg_string, wart_features)
@@ -81,7 +81,6 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
         wart_features_cream = np.load("cache/warts_cream_features" + arg_string + ".npy")
         wart_features_cream = wart_features_cream.astype(np.float32)
-
 
     features = np.concatenate((wart_features, wart_features_cream))
     np.random.RandomState(1)
@@ -136,18 +135,18 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         no_feat_counter = 0
         for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
             for i, descs in enumerate(wart_imgs):
-				if len(descs) == 0:
-					continue
+                if len(descs) == 0:
+                        continue
 
                 if norm == cv2.NORM_L2:
-					hist = np.zeros(len(vocabulary))
-	
-					for desc in descs:
-						match = np.sum(np.square(np.abs(vocabulary-descs[0])),1).argmin()
-						hist[match] += 1
-						hist /= len(descs)
+                    hist = np.zeros(len(vocabulary))
 
-				else:
+                    for desc in descs:
+                        match = np.sum(np.square(np.abs(vocabulary - descs[0])),1).argmin()  # ask yuri if this is ok
+                        hist[match] += 1
+                        hist /= len(descs)
+
+                else:
                     if descs is None or len(descs) == 0:
                         no_feat_counter += 1
                         continue
@@ -162,15 +161,15 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 labels[i] = label * 179 + 1
 
                 if label == 0:
-            	    if i > len(warts_cream)-1:
-						pu.db
+                    if i > len(warts_cream) - 1:
+                        pu.db
                     img = cv2.imread(warts_cream[i])
                     images.append(img)
                 else:
                     img = cv2.imread(warts[i])
                     images.append(img)
 
-				i += 1
+                i += 1
 
         if no_feat_counter > 0:
             print str(os.getpid()) + "--- No histograms for %s images ---" % str(no_feat_counter)
@@ -197,7 +196,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     for i, image in enumerate(images):
         image = min_resize(image, 40)
         image = cv2.copyMakeBorder(image, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=(255,255,255))
-	if i == len(labels):
+        if i == len(labels):
             pu.db
 
         if labels[i] == 180:
