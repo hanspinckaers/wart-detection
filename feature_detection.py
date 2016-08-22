@@ -60,11 +60,11 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if os.path.isfile("cache/wart_features" + arg_string + ".npy") and os.path.isfile("cache/warts_cream_features" + arg_string + ".npy"):
         feature_cache = True
 
-    if not feature_cache or not cache:
+    if not feature_cache or cache:
         print str(os.getpid()) + "--- Create features ---"
 
         wart_features_per_img = get_features_array(warts, sensitivity=sensitivity, detector=detector_name, max_features=n_features, descriptor=descriptor_name, gray_detector=gray_detector, gray_descriptor=gray_descriptor, testing=testing)
-        wart_features = [item for sublist in wart_features_per_img for item in sublist]
+	wart_features = [item for sublist in wart_features_per_img for item in sublist]
         wart_features = np.asarray(wart_features)
         if cache:
             np.save("cache/wart_features" + arg_string, wart_features)
@@ -81,6 +81,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
         wart_features_cream = np.load("cache/warts_cream_features" + arg_string + ".npy")
         wart_features_cream = wart_features_cream.astype(np.float32)
+
 
     features = np.concatenate((wart_features, wart_features_cream))
     np.random.RandomState(1)
@@ -122,11 +123,10 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if not hist_cache or cache:
         print str(os.getpid()) + "--- Create histograms ---"
 
-        descriptor = get_descriptor(descriptor_name=descriptor_name, sensitivity=sensitivity, n_features=n_features)
+        descriptor, _ = get_descriptor(descriptor_name, sensitivity, n_features)
 
         if norm == cv2.NORM_L2:
-            extractor = cv2.BOWImgDescriptorExtractor(descriptor, matcher)
-            extractor.setVocabulary(vocabulary)
+            matcher.add(vocabulary)
 
         histograms = np.zeros((len(warts) + len(warts_cream), bow_size), dtype=np.float32)
         labels = np.zeros(len(warts) + len(warts_cream))
@@ -136,13 +136,18 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         no_feat_counter = 0
         for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
             for i, descs in enumerate(wart_imgs):
-                if norm == cv2.NORM_L2:
-                    if gray_descriptor:
-                        hist = extractor.compute(descs)
-                    else:
-                        hist = extractor.compute(descs)
+				if len(descs) == 0:
+					continue
 
-                else:
+                if norm == cv2.NORM_L2:
+					hist = np.zeros(len(vocabulary))
+	
+					for desc in descs:
+						match = np.sum(np.square(np.abs(vocabulary-descs[0])),1).argmin()
+						hist[match] += 1
+						hist /= len(descs)
+
+				else:
                     if descs is None or len(descs) == 0:
                         no_feat_counter += 1
                         continue
@@ -155,12 +160,17 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
                 histograms[i] = hist
                 labels[i] = label * 179 + 1
-                i += 1
 
                 if label == 0:
-                    images.append(warts_cream[i])
+            	    if i > len(warts_cream)-1:
+						pu.db
+                    img = cv2.imread(warts_cream[i])
+                    images.append(img)
                 else:
-                    images.append(warts[i])
+                    img = cv2.imread(warts[i])
+                    images.append(img)
+
+				i += 1
 
         if no_feat_counter > 0:
             print str(os.getpid()) + "--- No histograms for %s images ---" % str(no_feat_counter)
@@ -169,8 +179,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         labels = np.delete(labels, np.where(labels == 0), 0)
 
         print str(os.getpid()) + "--- Run TSNE ---"
-
-        features_TSNE = run_bh_tsne(histograms, verbose=False)
+        features_TSNE = run_bh_tsne(histograms, verbose=True)
 
         if cache:
             np.save("cache/images" + arg_string, images)
@@ -188,6 +197,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     for i, image in enumerate(images):
         image = min_resize(image, 40)
         image = cv2.copyMakeBorder(image, 1, 1, 1, 1, cv2.BORDER_CONSTANT, value=(255,255,255))
+	if i == len(labels):
+            pu.db
 
         if labels[i] == 180:
             images[i] = cv2.copyMakeBorder(image, 4, 4, 4, 4, cv2.BORDER_CONSTANT, value=(17,141,246))
@@ -216,4 +227,4 @@ if __name__ == '__main__':
         n_features = int(sys.argv[3])
         sensitivity = int(sys.argv[4])
         bow_size = int(sys.argv[5])
-        analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=True)
+        analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=True, cache=True)

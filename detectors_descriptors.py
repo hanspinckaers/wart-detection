@@ -187,11 +187,11 @@ def SURF_detector(img, sensitivity, max_features):
     global detectors
 
     hessianThreshold = 10
-    increment = 10
+    increment = 15
 
     if detectors is None:
         detectors = []
-        for i in range(10):
+        for i in range(50):
             detectors.append(cv2.xfeatures2d.SURF_create(hessianThreshold=hessianThreshold + increment * i, nOctaves=1))
 
     detector = detectors[0]
@@ -202,13 +202,13 @@ def SURF_detector(img, sensitivity, max_features):
     # make hessianThreshold bigger until n_features is smaller
     j = 0
     n_kps = max_features + 1
-    while n_kps > max_features and j < 9:
+    while n_kps > max_features and j < 49:
         kps = detector.detect(img)
         n_kps = len(kps)
         j += 1
         detector = detectors[j]
 
-    return detector, kps
+    return detectors[j-1], kps
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
