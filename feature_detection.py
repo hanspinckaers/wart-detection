@@ -3,26 +3,17 @@ import os
 import fnmatch
 import numpy as np
 import time
+import sys
 
 from bhtsne import run_bh_tsne
 from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
 from kmajority import kmajority, compute_hamming_hist
-from detectors_descriptors import get_detector, get_descriptor, norm_for_descriptor, get_features
-# import pudb
-
-# # arguments:
-# detector_name = 'SIFT'
-# descriptor_name = 'FREAK'
-# n_features = 10
-# sensitivity = 2
-# bow_size = 1000  # too small bag of words: not representative of all patches, too big: overfitting!
-# gray_detector = False
-# gray_descriptor = False
+from detectors_descriptors import get_descriptor, norm_for_descriptor, get_features_array
 
 
-def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=False):
+def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=False, testing=False):
     overall_start_time = time.time()
 
     norm = norm_for_descriptor(descriptor_name)
@@ -40,8 +31,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         os.makedirs("results/")
 
     # symbols used for printing output
-    CURSOR_UP_ONE = '\x1b[1A'
-    ERASE_LINE = '\x1b[2K'
+    # CURSOR_UP_ONE = '\x1b[1A'
+    # ERASE_LINE = '\x1b[2K'
 
     # sift-tsne-10-features-per-img.png
     # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
@@ -72,14 +63,15 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if not feature_cache or not cache:
         print str(os.getpid()) + "--- Create features ---"
 
-        detector = get_detector(detector_name, sensitivity, n_features=n_features)
-        descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
-
-        wart_features = get_features(warts, detector=detector, descriptor=descriptor, gray_detector=gray_detector, gray_descriptor=gray_descriptor)
+        wart_features_per_img = get_features_array(warts, sensitivity=sensitivity, detector=detector_name, max_features=n_features, descriptor=descriptor_name, gray_detector=gray_detector, gray_descriptor=gray_descriptor, testing=testing)
+        wart_features = [item for sublist in wart_features_per_img for item in sublist]
+        wart_features = np.asarray(wart_features)
         if cache:
             np.save("cache/wart_features" + arg_string, wart_features)
 
-        wart_features_cream = get_features(warts_cream, detector=detector, descriptor=descriptor)
+        wart_features_cream_per_img = get_features_array(warts_cream, sensitivity=sensitivity, detector=detector_name, max_features=n_features, descriptor=descriptor_name, testing=testing)
+        wart_features_cream = [item for sublist in wart_features_cream_per_img for item in sublist]
+        wart_features_cream = np.asarray(wart_features_cream)
         if cache:
             np.save("cache/warts_cream_features" + arg_string, wart_features_cream)
     else:
@@ -130,8 +122,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if not hist_cache or cache:
         print str(os.getpid()) + "--- Create histograms ---"
 
-        detector = get_detector(detector_name, sensitivity, n_features=n_features)
-        descriptor = get_descriptor(descriptor_name, sensitivity, n_features=n_features)
+        descriptor = get_descriptor(descriptor_name=descriptor_name, sensitivity=sensitivity, n_features=n_features)
 
         if norm == cv2.NORM_L2:
             extractor = cv2.BOWImgDescriptorExtractor(descriptor, matcher)
@@ -143,42 +134,20 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         images = []
         i = 0
         no_feat_counter = 0
-        for label, wart_imgs in enumerate([warts_cream, warts]):
-            for filename in wart_imgs:
-                # if i > 0:
-                #    print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
-
-                # print "--- Creating histograms " + str(filename) + " ---"
-
-                image = cv2.imread(filename)
-                gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-                if gray_detector:
-                    kps = detector.detect(gray, None)
-                else:
-                    kps = detector.detect(image, None)
-
-                if kps is None or len(kps) == 0:
-                    no_feat_counter += 1
-                    continue
-
+        for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
+            for i, descs in enumerate(wart_imgs):
                 if norm == cv2.NORM_L2:
                     if gray_descriptor:
-                        hist = extractor.compute(gray, kps)
+                        hist = extractor.compute(descs)
                     else:
-                        hist = extractor.compute(image, kps)
+                        hist = extractor.compute(descs)
 
                 else:
-                    if gray_descriptor:
-                        _, desc = descriptor.compute(gray, kps)
-                    else:
-                        _, desc = descriptor.compute(image, kps)
-
-                    if desc is None or len(kps) == 0:
+                    if descs is None or len(descs) == 0:
                         no_feat_counter += 1
                         continue
 
-                    hist = compute_hamming_hist(desc, vocabulary)
+                    hist = compute_hamming_hist(descs, vocabulary)
 
                 if np.sum(hist) == 0:  # this shouldn't happen... histogram always sums to 1
                     print "[Error] hist == 0 no kps for " + str(filename) + "--- \n"
@@ -187,7 +156,11 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 histograms[i] = hist
                 labels[i] = label * 179 + 1
                 i += 1
-                images.append(image)
+
+                if label == 0:
+                    images.append(warts_cream[i])
+                else:
+                    images.append(warts[i])
 
         if no_feat_counter > 0:
             print str(os.getpid()) + "--- No histograms for %s images ---" % str(no_feat_counter)
@@ -233,3 +206,14 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     plt.savefig("results/tsne_scatter" + arg_string + ".png", dpi=100, bbox_inches='tight')
 
     print(str(os.getpid()) + "--- Overall in %.3f seconds -" % (time.time() - overall_start_time))
+
+
+if __name__ == '__main__':
+    print len(sys.argv)
+    if len(sys.argv) == 6:
+        detector_name = sys.argv[1]
+        descriptor_name = sys.argv[2]
+        n_features = int(sys.argv[3])
+        sensitivity = int(sys.argv[4])
+        bow_size = int(sys.argv[5])
+        analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=True)

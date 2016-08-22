@@ -8,8 +8,8 @@ detector_name = 'SIFT'
 descriptor_name = 'FREAK'
 
 combinations = [
-    ['SIFT', 'SIFT'],
-    ['SIFT', 'FREAK'],
+    # ['SIFT', 'SIFT'],
+    # ['SIFT', 'FREAK'],
     ['SURF', 'SURF'],
     ['SURF', 'FREAK'],
     ['AKAZE', 'AKAZE'],  # AKAZE is the modern version than KAZE (Accelerated KAZE)
@@ -26,7 +26,9 @@ bow_size = [200, 1000, 500]  # too small bag of words: not representative of all
 
 first = True
 
-num_cores = round(multiprocessing.cpu_count() / 4)
+num_cores = int(round(multiprocessing.cpu_count() / 4))
+if num_cores == 0:
+    num_cores = 1
 
 
 def analyze(args):
