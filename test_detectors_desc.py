@@ -1,7 +1,7 @@
 from feature_detection import analyze_images
 from joblib import Parallel, delayed
 import os, sys
-
+import pudb
 import multiprocessing
 
 # arguments:
@@ -36,9 +36,11 @@ def analyze(args):
     child_pid = os.fork()
     if child_pid == 0:
         analyze_images(args[0], args[1], args[2], args[3], args[4])
-        os._exit()
+	pu.db
+        sys.exit(0)
     else:
         os.waitpid(child_pid, 0)
+	pu.db
 
 combi_args = []
 
@@ -46,6 +48,5 @@ for det_dec in combinations:
     for n in n_features:
         for s in sensitivity:
             for b in bow_size:
-                combi_args.append((det_dec[0], det_dec[1], n, s, b))
+                analyze((det_dec[0], det_dec[1], n, s, b))
 
-results = Parallel(n_jobs=num_cores)(delayed(analyze)(arg) for arg in combi_args)
