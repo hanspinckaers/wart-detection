@@ -114,6 +114,9 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     # So we can only use the BF matches when using Eaclidean distance
     if norm == cv2.NORM_L2:
         matcher = cv2.BFMatcher()
+    sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4)
+    extractor = cv2.BOWImgDescriptorExtractor(sift, matcher)
+    extractor.setVocabulary(vocabulary)
 
     hist_cache = False
     if os.path.isfile("cache/images" + arg_string + ".npy") and os.path.isfile("cache/labels" + arg_string + ".npy") and os.path.isfile("cache/tsne" + arg_string + ".npy"):
@@ -138,14 +141,30 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 if len(descs) == 0:
                         continue
 
+		if label == 0:
+                    img = cv2.imread(warts_cream[j])
+
+                else:
+                    img = cv2.imread(warts[j])
+		
+		img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
                 if norm == cv2.NORM_L2:
                     hist = np.zeros(len(vocabulary))
 
                     for desc in descs:
                         match = np.sum(np.square(np.abs(vocabulary - desc)),1).argmin()  # ask yuri if this is ok
                         hist[match] += 1
-
+			
                     hist /= len(descs)
+
+		    kp, _ = sift.detectAndCompute(img_gray, None)
+		    hist_cv2 = extractor.compute(img, kp)
+		    
+		    if hist != hist_cv2[0]:
+			pu.db
+		    else:
+			print "Equal!"
 
                 else:
                     if descs is None or len(descs) == 0:
