@@ -114,6 +114,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     # So we can only use the BF matches when using Eaclidean distance
     if norm == cv2.NORM_L2:
         matcher = cv2.BFMatcher()
+
     sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4)
     extractor = cv2.BOWImgDescriptorExtractor(sift, matcher)
     extractor.setVocabulary(vocabulary)
@@ -127,8 +128,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
         descriptor, _ = get_descriptor(descriptor_name, sensitivity, n_features)
 
-        if norm == cv2.NORM_L2:
-            matcher.add(vocabulary)
+        # if norm == cv2.NORM_L2:
+        #    matcher.add(vocabulary)
 
         histograms = np.zeros((len(warts) + len(warts_cream), bow_size), dtype=np.float32)
         labels = np.zeros(len(warts) + len(warts_cream))
@@ -136,11 +137,12 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         images = []
         i = 0
         no_feat_counter = 0
-        for label, wart_imgs in enumerate([wart_features_cream_per_img, wart_features_per_img]):
+        for label, wart_imgs in enumerate([wart_features_per_img, wart_features_cream_per_img]):
             for j, descs in enumerate(wart_imgs):
                 if len(descs) == 0:
                         continue
 
+<<<<<<< HEAD
                 if label == 0:
                     img = cv2.imread(warts_cream[j])
 
@@ -148,16 +150,31 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                     img = cv2.imread(warts[j])
 
                 img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+=======
+		if label == 0:
+                    img = cv2.imread(warts[j])
+                else:
+                    img = cv2.imread(warts_cream[j])
+		
+		img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+>>>>>>> 16631d0698caeccee46166865e7841411d9700b1
 
                 if norm == cv2.NORM_L2:
                     hist = np.zeros(len(vocabulary))
 
                     for desc in descs:
+			
                         match = np.sum(np.square(np.abs(vocabulary - desc)),1).argmin()  # ask yuri if this is ok
+			if i == 3:
+			    pu.db
+			if match == 27:
+			    pu.db
                         hist[match] += 1
 
                     hist /= len(descs)
+		    hist = hist.astype(np.float32)
 
+<<<<<<< HEAD
                     kp, _ = sift.detectAndCompute(img_gray, None)
                     hist_cv2 = extractor.compute(img, kp)
 
@@ -165,6 +182,13 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                         pu.db
                     else:
                         print "Equal!"
+=======
+		    kp, _ = sift.detectAndCompute(img_gray, None)
+		    hist_cv2 = extractor.compute(img, kp)
+		    
+		    if np.any(np.abs(hist - hist_cv2[0]) > 0.0000001):
+			pu.db
+>>>>>>> 16631d0698caeccee46166865e7841411d9700b1
 
                 else:
                     if descs is None or len(descs) == 0:
@@ -179,15 +203,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
                 histograms[i] = hist
                 labels[i] = label * 179 + 1
-
-                if label == 0:
-                    if i > len(warts_cream) - 1:
-                        pu.db
-                    img = cv2.imread(warts_cream[j])
-                    images.append(img)
-                else:
-                    img = cv2.imread(warts[j])
-                    images.append(img)
+                images.append(img)
 
                 i += 1
 
