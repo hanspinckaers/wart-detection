@@ -142,9 +142,10 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                     hist = np.zeros(len(vocabulary))
 
                     for desc in descs:
-                        match = np.sum(np.square(np.abs(vocabulary - descs[0])),1).argmin()  # ask yuri if this is ok
+                        match = np.sum(np.square(np.abs(vocabulary - desc)),1).argmin()  # ask yuri if this is ok
                         hist[match] += 1
-                        hist /= len(descs)
+
+                    hist /= len(descs)
 
                 else:
                     if descs is None or len(descs) == 0:
