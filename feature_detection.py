@@ -59,7 +59,8 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     feature_cache = False
     if os.path.isfile("cache/wart_features" + arg_string + ".npy") and os.path.isfile("cache/warts_cream_features" + arg_string + ".npy"):
         feature_cache = True
-
+	
+    # cache is broken for features! (features_per_img not saved)
     if not feature_cache or cache:
         print str(os.getpid()) + "--- Create features ---"
 
@@ -123,7 +124,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     if os.path.isfile("cache/images" + arg_string + ".npy") and os.path.isfile("cache/labels" + arg_string + ".npy") and os.path.isfile("cache/tsne" + arg_string + ".npy"):
         hist_cache = True
 
-    if not hist_cache or cache:
+    if not hist_cache or not cache:
         print str(os.getpid()) + "--- Create histograms ---"
 
         descriptor, _ = get_descriptor(descriptor_name, sensitivity, n_features)
@@ -189,7 +190,7 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
         labels = np.delete(labels, np.where(labels == 0), 0)
 
         print str(os.getpid()) + "--- Run TSNE ---"
-        features_TSNE = run_bh_tsne(histograms, verbose=True)
+        features_TSNE = run_bh_tsne(histograms, verbose=testing)
 
         if cache:
             np.save("cache/images" + arg_string, images)
@@ -217,14 +218,14 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
 
     # make plots
     img = image_scatter(subset_features, images[0:len(subset_features)], scatter_size=8000)
-    cv2.imwrite("results/image_scatter" + arg_string + ".png", img)
+    cv2.imwrite("results/image_scatter" + arg_string + "n_feat " + str(len(features)) + ".png", img)
 
     plt.clf()
     plt.scatter(features_TSNE[:, 0], features_TSNE[:, 1], c=labels, cmap="viridis")
     plt.clim(-0.5, 9.5)
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(35, 35)
-    plt.savefig("results/tsne_scatter" + arg_string + ".png", dpi=100, bbox_inches='tight')
+    plt.savefig("results/tsne_scatter" + arg_string + "n_feat " + str(len(features)) + ".png", dpi=100, bbox_inches='tight')
 
     print(str(os.getpid()) + "--- Overall in %.3f seconds -" % (time.time() - overall_start_time))
 
