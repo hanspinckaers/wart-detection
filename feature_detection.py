@@ -141,13 +141,13 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                 if len(descs) == 0:
                         continue
 
-		if label == 0:
+                if label == 0:
                     img = cv2.imread(warts_cream[j])
 
                 else:
                     img = cv2.imread(warts[j])
-		
-		img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+                img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
                 if norm == cv2.NORM_L2:
                     hist = np.zeros(len(vocabulary))
@@ -155,16 +155,16 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
                     for desc in descs:
                         match = np.sum(np.square(np.abs(vocabulary - desc)),1).argmin()  # ask yuri if this is ok
                         hist[match] += 1
-			
+
                     hist /= len(descs)
 
-		    kp, _ = sift.detectAndCompute(img_gray, None)
-		    hist_cv2 = extractor.compute(img, kp)
-		    
-		    if hist != hist_cv2[0]:
-			pu.db
-		    else:
-			print "Equal!"
+                    kp, _ = sift.detectAndCompute(img_gray, None)
+                    hist_cv2 = extractor.compute(img, kp)
+
+                    if hist != hist_cv2[0]:
+                        pu.db
+                    else:
+                        print "Equal!"
 
                 else:
                     if descs is None or len(descs) == 0:
