@@ -174,7 +174,7 @@ def SIFT_detector(img, sensitivity, n_features):
     elif sensitivity == 1:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=10, sigma=0.4)
     elif sensitivity == 0:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=7, sigma=0.4)
+        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4)
 
     if img is None:
         return sift, None
