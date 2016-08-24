@@ -84,7 +84,7 @@ def get_features(filename, detector, descriptor, sensitivity=2, max_features=500
         else:
             _, desc = dect.compute(image, kps)
     else:
-        descriptor = get_descriptor(descriptor, sensitivity, max_features)
+        descriptor, _ = get_descriptor(descriptor, sensitivity, max_features)
         if gray_descriptor:
             _, desc = descriptor.compute(gray, kps)
         else:
@@ -205,12 +205,12 @@ def SURF_detector(img, sensitivity, max_features):
     j = 0
     n_kps = max_features + 1
     while n_kps > max_features and j < 49:
+        detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
-        detector = detectors[j + 1]
         j += 1
 
-    return detectors[j], kps
+    return detector, kps
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
@@ -222,7 +222,7 @@ def AKAZE_detector(img, sensitivity, max_features):
     if detectors is None:
         detectors = []
         for i in range(50):
-            detectors.append(cv2.xfeatures2d.AKAZE_create(threshold=threshold + increment * i))
+            detectors.append(cv2.AKAZE_create(threshold=threshold + increment * i))
 
     detector = detectors[0]
 
@@ -233,12 +233,12 @@ def AKAZE_detector(img, sensitivity, max_features):
     j = 0
     n_kps = max_features + 1
     while n_kps > max_features and j < 49:
+        detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
-        detector = detectors[j + 1]
         j += 1
 
-    return detector[j], kps
+    return detector, kps
 
 
 # http://docs.opencv.org/trunk/d3/d61/classcv_1_1KAZE.html#gsc.tab=0
@@ -250,7 +250,7 @@ def KAZE_detector(img, sensitivity, max_features):
     if detectors is None:
         detectors = []
         for i in range(50):
-            detectors.append(cv2.xfeatures2d.KAZE_create(threshold=threshold + increment * i))
+            detectors.append(cv2.KAZE_create(threshold=threshold + increment * i))
 
     detector = detectors[0]
 
@@ -261,12 +261,12 @@ def KAZE_detector(img, sensitivity, max_features):
     j = 0
     n_kps = max_features + 1
     while n_kps > max_features and j < 49:
+        detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
-        detector = detectors[j + 1]
         j += 1
 
-    return detector[j], kps
+    return detector, kps
 
 
 # http://docs.opencv.org/trunk/db/d95/classcv_1_1ORB.html#gsc.tab=0
@@ -302,12 +302,12 @@ def Agast_detector(img, sensitivity, max_features):
     j = 0
     n_kps = max_features + 1
     while n_kps > max_features and j < 49:
+        detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
-        detector = detectors[j + 1]
         j += 1
 
-    return detector[j], kps
+    return detector, kps
 
 
 # http://docs.opencv.org/trunk/df/d21/classcv_1_1GFTTDetector.html#gsc.tab=0
@@ -346,12 +346,12 @@ def MSER_detector(img, sensitivity, max_features):
     j = 0
     n_kps = max_features + 1
     while n_kps > max_features and j < 49:
+        detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
-        detector = detectors[j + 1]
         j += 1
 
-    return detector[j], kps
+    return detector, kps
 
 
 # http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#brisk
@@ -363,14 +363,14 @@ def BRISK_detector(sensitivity, n_features):
 
 # cannot seem to get it working
 # http://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html?highlight=surffeaturedetector#StarFeatureDetector%20:%20public%20FeatureDetector
-def STAR_detector(sensitivity, n_features):
+def STAR_detector(img, sensitivity, n_features):
     return cv2.xfeatures2d.StarDetector_create(responseThreshold=5, lineThresholdProjected=5)
 
 
 # http://docs.opencv.org/3.1.0/df/db4/classcv_1_1xfeatures2d_1_1FREAK.html#gsc.tab=0
 # NB only descriptor!
 # diffusivity
-def FREAK_descriptor(sensitivity, keypoints):
+def FREAK_descriptor(img, sensitivity, keypoints):
     if sensitivity == 2:
         freak = cv2.xfeatures2d.FREAK_create(patternScale=10.)
     elif sensitivity == 1:

@@ -238,4 +238,4 @@ if __name__ == '__main__':
         n_features = int(sys.argv[3])
         sensitivity = int(sys.argv[4])
         bow_size = int(sys.argv[5])
-        analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=True, cache=True)
+        analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=False, cache=False)

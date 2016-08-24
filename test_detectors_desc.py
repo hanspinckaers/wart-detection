@@ -22,7 +22,7 @@ combinations = [
 ]
 
 if len(sys.argv) > 1:
-    combinations = combinations[sys.argv[1]:sys.argv[1] + 2]
+    combinations = combinations[int(sys.argv[1]) * 2:int(sys.argv[1]) * 2 + 2]
 
 n_features = [10, 25, 50]
 sensitivity = [1, 2]

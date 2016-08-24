@@ -40,6 +40,7 @@ def kmajority(vectors, k):
         start_time = time.time()
 
         # save new centroids for kmajority c binary
+	centroids_filename = '_t_centroids_' + str(os.getpid())
         np.savetxt('_t_centroids_' + str(os.getpid()), centroids, fmt='%i')
 
         # divide the vectors and parallelize the search for closest centroids
@@ -52,7 +53,7 @@ def kmajority(vectors, k):
             splitted_vectors[-1] = np.append(splitted_vectors[-1], leftover, axis=0)
 
         # start parallel jobs to find closest centroid for each vector
-        results = Parallel(n_jobs=num_cores)(delayed(closest_dist)(vecs, unique_i, centroids, k) for unique_i, vecs in enumerate(splitted_vectors))
+        results = Parallel(n_jobs=num_cores)(delayed(closest_dist)(vecs, unique_i, centroids, k, centroids_filename) for unique_i, vecs in enumerate(splitted_vectors))
         cen_per_vec = np.concatenate(results)
 
         # print("--- kmajority %.3f seconds" % (time.time() - start_time))
@@ -101,12 +102,12 @@ def kmajority(vectors, k):
     return centroids
 
 
-def closest_dist(vecs, unique_i, centroids, k):
+def closest_dist(vecs, unique_i, centroids, k, centroids_filename):
     filename = '_t_vectors_job_' + str(os.getpid()) + str(unique_i)  # create random filename for kmajority
 
     np.savetxt(filename, vecs, fmt='%i')
 
-    output = check_output(["./kmajority", str(vecs.shape[1]), str(vecs.shape[0]), str(k), filename, '_t_centroids'])  # run c binary (is faster than pure python)
+    output = check_output(["./kmajority", str(vecs.shape[1]), str(vecs.shape[0]), str(k), filename, centroids_filename])  # run c binary (is faster than pure python)
     cen_per_vec = np.fromstring(output, dtype=int, sep=' ')  # convert to numpy array
 
     os.remove(filename)  # clean up file after job finished
