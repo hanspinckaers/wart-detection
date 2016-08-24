@@ -59,9 +59,9 @@ def analyze_images(detector_name, descriptor_name, n_features, sensitivity, bow_
     feature_cache = False
     if os.path.isfile("cache/wart_features" + arg_string + ".npy") and os.path.isfile("cache/warts_cream_features" + arg_string + ".npy"):
         feature_cache = True
-	
+
     # cache is broken for features! (features_per_img not saved)
-    if not feature_cache or cache:
+    if not feature_cache or cache or True:
         print str(os.getpid()) + "--- Create features ---"
 
         wart_features_per_img = get_features_array(warts, sensitivity=sensitivity, detector=detector_name, max_features=n_features, descriptor=descriptor_name, gray_detector=gray_detector, gray_descriptor=gray_descriptor, testing=testing)

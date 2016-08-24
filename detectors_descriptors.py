@@ -67,7 +67,7 @@ def get_features_array(images, detector, descriptor, sensitivity=2, max_features
     return featureVectors
 
 
-def get_features(filename, detector, descriptor, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features(filename, detector, descriptor_name, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     image = cv2.imread(filename)
 
     if gray_detector or gray_descriptor:
@@ -78,23 +78,23 @@ def get_features(filename, detector, descriptor, sensitivity=2, max_features=500
     else:
         dect, kps = kps_with_detector(image, detector, sensitivity, max_features)
 
-    if descriptor == detector:
+    if descriptor_name == detector:
         if gray_descriptor:
             _, desc = dect.compute(gray, kps)
         else:
             _, desc = dect.compute(image, kps)
     else:
-        descriptor, _ = get_descriptor(descriptor, sensitivity, max_features)
+        descriptor, _ = get_descriptor(descriptor_name, sensitivity, max_features)
         if gray_descriptor:
             _, desc = descriptor.compute(gray, kps)
         else:
             _, desc = descriptor.compute(image, kps)
 
     # if testing:
-    #    print "Number of features: " + str(len(kps))
-    #    test = cv2.drawKeypoints(gray, kps, image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    #    cv2.imshow('test', test)
-    #    cv2.waitKey(0)
+    #     print "Number of features: " + str(len(kps))
+    #     test = cv2.drawKeypoints(gray, kps, image, flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    #     cv2.imshow('test', test)
+    #     cv2.waitKey(0)
 
     if desc is None:
         return np.array([])
@@ -176,7 +176,7 @@ def SIFT_detector(img, sensitivity, n_features):
     elif sensitivity == 1:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=10, sigma=0.4)
     elif sensitivity == 0:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4) # of 7 as edgethreshold?
+        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=5, sigma=0.4)  # of 7 as edgethreshold?
 
     if img is None:
         return sift, None
@@ -184,89 +184,86 @@ def SIFT_detector(img, sensitivity, n_features):
     return sift, sift.detect(img)
 
 
-# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-def SURF_detector(img, sensitivity, max_features):
+def get_max_features(img, thresh, thresh_arg, increment, create_func, max_features, arg_dict={}, max_rounds=50):
     global detectors
 
-    hessianThreshold = 10
-    increment = 15
+    arg_dict[thresh_arg] = thresh
+
+    if img is None:
+        return create_func(**arg_dict), None
 
     if detectors is None:
         detectors = []
-        for i in range(50):
-            detectors.append(cv2.xfeatures2d.SURF_create(hessianThreshold=hessianThreshold + increment * i, nOctaves=1))
+        for i in range(max_rounds):
+            arg_dict[thresh_arg] += increment * i
+            detectors.append(create_func(**arg_dict))
 
     detector = detectors[0]
 
-    if img is None:
-        return detector, None
-
-    # make hessianThreshold bigger until n_features is smaller
     j = 0
     n_kps = max_features + 1
-    while n_kps > max_features and j < 49:
+    while n_kps > max_features and j < max_rounds:
         detector = detectors[j]
         kps = detector.detect(img)
         n_kps = len(kps)
         j += 1
 
     return detector, kps
+
+
+# http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
+def SURF_detector(img, sensitivity, max_features):
+    return get_max_features(img,
+                            thresh=10,
+                            thresh_arg="hessianThreshold",
+                            increment=15,
+                            arg_dict={"nOctaves": 1},
+                            create_func=cv2.xfeatures2d.SURF_create,
+                            max_features=max_features)
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
 def AKAZE_detector(img, sensitivity, max_features):
-    global detectors
-    threshold = 0.000001
-    increment = 0.000001
-
-    if detectors is None:
-        detectors = []
-        for i in range(50):
-            detectors.append(cv2.AKAZE_create(threshold=threshold + increment * i))
-
-    detector = detectors[0]
-
-    if img is None:
-        return detector, None
-
-    # make threshold bigger until n_features is smaller
-    j = 0
-    n_kps = max_features + 1
-    while n_kps > max_features and j < 49:
-        detector = detectors[j]
-        kps = detector.detect(img)
-        n_kps = len(kps)
-        j += 1
-
-    return detector, kps
+    return get_max_features(img,
+                            thresh=0.000001,
+                            thresh_arg="threshold",
+                            increment=0.000001,
+                            arg_dict={},
+                            create_func=cv2.AKAZE_create,
+                            max_features=max_features)
 
 
 # http://docs.opencv.org/trunk/d3/d61/classcv_1_1KAZE.html#gsc.tab=0
 def KAZE_detector(img, sensitivity, max_features):
-    global detectors
-    threshold = 0.000001
-    increment = 0.000001
+    return get_max_features(img,
+                            thresh=0.000001,
+                            thresh_arg="threshold",
+                            increment=0.000001,
+                            arg_dict={},
+                            create_func=cv2.KAZE_create,
+                            max_features=max_features)
 
-    if detectors is None:
-        detectors = []
-        for i in range(50):
-            detectors.append(cv2.KAZE_create(threshold=threshold + increment * i))
 
-    detector = detectors[0]
+# http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#mser
+def MSER_detector(img, sensitivity, max_features):
+    return get_max_features(img,
+                            thresh=3,
+                            thresh_arg="_max_area",
+                            increment=1,
+                            arg_dict={"_edge_blur_size":2, "_delta":10, "_min_area":3},
+                            create_func=cv2.MSER_create,
+                            max_features=max_features)
 
-    if img is None:
-        return detector, None
 
-    # make threshold bigger until n_features is smaller
-    j = 0
-    n_kps = max_features + 1
-    while n_kps > max_features and j < 49:
-        detector = detectors[j]
-        kps = detector.detect(img)
-        n_kps = len(kps)
-        j += 1
-
-    return detector, kps
+# http://docs.opencv.org/trunk/d7/d19/classcv_1_1AgastFeatureDetector.html#gsc.tab=0
+def Agast_detector(img, sensitivity, max_features):
+    return get_max_features(img,
+                            thresh=2,
+                            thresh_arg="threshold",
+                            increment=1,
+                            arg_dict={},
+                            create_func=cv2.AgastFeatureDetector,
+                            max_features=max_features)
 
 
 # http://docs.opencv.org/trunk/db/d95/classcv_1_1ORB.html#gsc.tab=0
@@ -280,34 +277,6 @@ def ORB_detector(img, sensitivity, n_features):
     if img is None:
         return orb, None
     return orb, orb.detect(img)
-
-
-# http://docs.opencv.org/trunk/d7/d19/classcv_1_1AgastFeatureDetector.html#gsc.tab=0
-def Agast_detector(img, sensitivity, max_features):
-    global detectors
-    threshold = 2
-    increment = 1
-
-    if detectors is None:
-        detectors = []
-        for i in range(50):
-            detectors.append(cv2.xfeatures2d.AgastFeatureDetector(threshold=threshold + increment * i))
-
-    detector = detectors[0]
-
-    if img is None:
-        return detector, None
-
-    # make threshold bigger until n_features is smaller
-    j = 0
-    n_kps = max_features + 1
-    while n_kps > max_features and j < 49:
-        detector = detectors[j]
-        kps = detector.detect(img)
-        n_kps = len(kps)
-        j += 1
-
-    return detector, kps
 
 
 # http://docs.opencv.org/trunk/df/d21/classcv_1_1GFTTDetector.html#gsc.tab=0
@@ -324,34 +293,6 @@ def GFTT_detector(img, sensitivity, n_features):
         return gftt, None
 
     return gftt, gftt.detect(img)
-
-
-# http://docs.opencv.org/trunk/df/d21/classcv_1_1GFTTDetector.html#gsc.tab=0
-def MSER_detector(img, sensitivity, max_features):
-    global detectors
-    _min_area = 3
-    increment = 1
-
-    if detectors is None:
-        detectors = []
-        for i in range(50):
-            detectors.append(cv2.MSER_create(_edge_blur_size=3, _delta=10, _min_area=3, _max_area=_min_area + increment * i))
-
-    detector = detectors[0]
-
-    if img is None:
-        return detector, None
-
-    # make threshold bigger until n_features is smaller
-    j = 0
-    n_kps = max_features + 1
-    while n_kps > max_features and j < 49:
-        detector = detectors[j]
-        kps = detector.detect(img)
-        n_kps = len(kps)
-        j += 1
-
-    return detector, kps
 
 
 # http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#brisk
