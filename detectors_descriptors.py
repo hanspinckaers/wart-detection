@@ -171,6 +171,7 @@ def get_descriptor(name, sensitivity, n_features):
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#sift-sift
 def SIFT_detector(img, sensitivity, n_features):
+    # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
     if sensitivity == 2:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.01, edgeThreshold=20, sigma=0.4)
     elif sensitivity == 1:
@@ -245,6 +246,7 @@ def KAZE_detector(img, sensitivity, max_features):
 
 
 # http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#mser
+# cannot seem to get MSER working for wart images
 def MSER_detector(img, sensitivity, max_features):
     return get_max_features(img,
                             thresh=3,
