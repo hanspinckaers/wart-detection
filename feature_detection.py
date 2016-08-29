@@ -19,7 +19,7 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
     norm = norm_for_descriptor(descriptor_name)
 
     # could we use Bayesian optimization?
-    arg_string = ' - det ' + detector_name + ' - desc ' + descriptor_name + ' - n ' + str(n_features) + ' - s ' + str(sensitivity) + ' - bow ' + str(bow_size)
+    arg_string = 'new - det ' + detector_name + ' - desc ' + descriptor_name + ' - n ' + str(n_features) + ' - s ' + str(sensitivity) + ' - bow ' + str(bow_size)
 
     print str(os.getpid()) + "----- Run with: " + arg_string
     print str(os.getpid()) + "----- Using cache: " + str(cache)
@@ -84,8 +84,8 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
             # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
             vocabulary = kmajority(features.astype(int), bow_size)
 
-        if cache:
-            np.save("cache/vocabulary" + arg_string, vocabulary)
+        # if cache:
+        np.save("cache/vocabulary" + arg_string, vocabulary)
     else:
         print str(os.getpid()) + "Loading vocabulary from cache"
         vocabulary = np.load("cache/vocabulary" + arg_string + ".npy")
@@ -101,8 +101,8 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
 
         descriptor, _ = get_descriptor(descriptor_name, sensitivity, n_features)
 
-        histograms = np.zeros((len(warts) + len(warts_cream), bow_size), dtype=np.float32)
-        labels = np.zeros(len(warts) + len(warts_cream))
+        histograms = np.zeros((len(class_one) + len(class_two), bow_size), dtype=np.float32)
+        labels = np.zeros(len(class_one) + len(class_two))
 
         images = []
         i = 0
@@ -113,9 +113,9 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
                     continue
 
                 if label == 0:
-                    img = cv2.imread(warts[j])
+                    img = cv2.imread(class_one[j])
                 else:
-                    img = cv2.imread(warts_cream[j])
+                    img = cv2.imread(class_two[j])
 
                 if norm == cv2.NORM_L2:
                     hist = np.zeros(len(vocabulary))
