@@ -262,7 +262,7 @@ def Agast_detector(img, sensitivity, max_features):
                             thresh_arg="threshold",
                             increment=1,
                             arg_dict={},
-                            create_func=cv2.AgastFeatureDetector,
+                            create_func=cv2.AgastFeatureDetector_create,
                             max_features=max_features)
 
 
