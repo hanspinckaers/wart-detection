@@ -9,7 +9,7 @@ from kmajority import kmajority, compute_hamming_hist
 from detectors_descriptors import get_features_array, get_features
 
 from sklearn import neighbors
-
+from sklearn import cluster
 
 def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
     overall_start_time = time.time()
@@ -29,7 +29,7 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     print("---Train BOW---")
     vocabulary = train_bagofwords(features, bow_size)
     print("---Make hists---")
-    hists, labels, _ = hist_using_vocabulary([train_pos, train_neg], vocabulary)
+    hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
     print("---Fit model---")
     model = fit_model_kneighbors(hists, labels, k)
 
@@ -61,9 +61,23 @@ def extract_features(classes, detector_name, descriptor_name, dect_params, n_fea
 
 def train_bagofwords(features, bow_size, norm=cv2.NORM_L2):
     if norm == cv2.NORM_L2:
+        # scipy:
+        start_time = time.time()
+
+        est = cluster.KMeans(bow_size, n_jobs=-1)
+        est.fit(features)
+        est.cluster_centers_
+
+        print("--- scipy took %s ---" % (time.time() - start_time))
+
+        start_time = time.time()
+
         bow = cv2.BOWKMeansTrainer(bow_size)
         bow.add(features)
         vocabulary = bow.cluster()
+
+        print("--- cv2 took %s ---" % (time.time() - start_time))
+
     else:
         # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
         vocabulary = kmajority(features.astype(int), bow_size)
