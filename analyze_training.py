@@ -4,12 +4,70 @@ import fnmatch
 import numpy as np
 import time
 import sys
+import random
 
 from kmajority import kmajority, compute_hamming_hist
-from detectors_descriptors import get_features_array, get_features
-
+from detectors_descriptors import get_features_array
+from divide import divide_in
 from sklearn import neighbors
-from sklearn import cluster
+
+
+def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
+    random.seed(0)
+    participants_sliced = divide_in(participants, kfold)
+    folds = []
+    for p in participants_sliced:
+        filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"))
+        folds.append([filenames_pos, filenames_neg])
+
+    overall_acc = 0
+    for i, f in enumerate(folds):
+        print "--- fold: " + str(i)
+
+        train_set_pos = []
+        train_set_neg = []
+        for j, f_ in enumerate(folds):
+            if j == i:
+                continue
+            train_set_pos += f_[0]
+            train_set_neg += f_[1]
+
+        test_filenames = f[0] + f[1]
+        random.shuffle(test_filenames)
+
+        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k)
+        predictions, labels, missed = predictions_with_set(test_filenames, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
+
+        accuracy = (np.sum(np.equal(predictions, labels)) * 1. - missed) / len(test_filenames)
+        overall_acc += accuracy
+        print "--- kfold: %s, accuracy: %s" % (str(i), str(accuracy))
+
+    print "--- overall accuracy: " + str(overall_acc / float(i))
+
+
+def filenames_for_participants(participants, directory):
+    pos = []
+    neg = []
+    for root, dirnames, filenames in directory:
+        for filename in fnmatch.filter(filenames, '*.png'):
+            parts = filename.split(" - ")
+            subject_id = parts[0]
+
+            if subject_id not in participants:
+                continue
+
+            if 'originals' in root:
+                continue
+            if 'dubious' in root:
+                continue
+
+            if 'cream' in root or 'wart' in root:
+                pos.append(root + "/" + filename)
+            else:
+                neg.append(root + "/" + filename)
+
+    return (pos, neg)
+
 
 def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
     overall_start_time = time.time()
@@ -28,8 +86,10 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
 
     print("---Train BOW---")
     vocabulary = train_bagofwords(features, bow_size)
+
     print("---Make hists---")
     hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
+
     print("---Fit model---")
     model = fit_model_kneighbors(hists, labels, k)
 
@@ -44,11 +104,15 @@ def validate_model(model, val_pos, val_neg, detector_name='SIFT', descriptor_nam
     np.random.shuffle(features)
 
 
-def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10):
-    descs = get_features(img_filename, detector_name, descriptor_name, dect_params, max_features=n_features)
-    hist = hist_with_img(descs, vocabulary)
-    pred = model.predict([hist])
-    return pred[0]
+def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
+    features = extract_features([test_set], detector_name, descriptor_name, dect_params, n_features)
+    descs, labels, _ = hist_using_vocabulary([features], vocabulary)
+    predictions = model.predict([descs])
+    return predictions, labels, len(features) - len(labels)
+
+
+def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
+    return predictions_with_set([img_filename], vocabulary, model, detector_name, descriptor_name, dect_params, n_features, norm)[0]
 
 
 def extract_features(classes, detector_name, descriptor_name, dect_params, n_features):
@@ -61,23 +125,9 @@ def extract_features(classes, detector_name, descriptor_name, dect_params, n_fea
 
 def train_bagofwords(features, bow_size, norm=cv2.NORM_L2):
     if norm == cv2.NORM_L2:
-        # scipy:
-        start_time = time.time()
-
-        est = cluster.KMeans(bow_size, n_jobs=-1)
-        est.fit(features)
-        est.cluster_centers_
-
-        print("--- scipy took %s ---" % (time.time() - start_time))
-
-        start_time = time.time()
-
         bow = cv2.BOWKMeansTrainer(bow_size)
         bow.add(features)
         vocabulary = bow.cluster()
-
-        print("--- cv2 took %s ---" % (time.time() - start_time))
-
     else:
         # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
         vocabulary = kmajority(features.astype(int), bow_size)
@@ -145,23 +195,11 @@ def fit_model_kneighbors(feat, classes, k, weights='uniform'):
 
 if __name__ == '__main__':
     if len(sys.argv) == 3:
-        n_features = int(sys.argv[1])
-        bow_size = int(sys.argv[2])
-
-        warts = []
-
-        for root, dirnames, filenames in os.walk("classified/warts"):
+        parts = []
+        for root, dirnames, filenames in os.walk("train_set"):
             for filename in fnmatch.filter(filenames, '*.png'):
-                warts.append("classified/warts" + "/" + filename)
+                part = filename.split(" - ")[0]
+                if part not in parts:
+                    parts.append(part)
 
-        negatives = []
-
-        for root, dirnames, filenames in os.walk("classified/negatives"):
-            for filename in fnmatch.filter(filenames, '*.png'):
-                negatives.append("classified/negatives" + "/" + filename)
-
-        for root, dirnames, filenames in os.walk("classified/warts_cream"):
-            for filename in fnmatch.filter(filenames, '*.png'):
-                warts.append("classified/warts_cream" + "/" + filename)
-
-        model_vocabulary = train_model(warts, negatives)
+        cross_validate_with_participants(3, parts)
