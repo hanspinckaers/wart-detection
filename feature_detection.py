@@ -139,7 +139,7 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
                     continue
 
                 histograms[i] = hist
-                labels[i] = label * 179 + 1
+                labels[i] = label * 179 + 1  # 1 = blue, 179 = yellow
                 images.append(img)
 
                 i += 1
@@ -170,9 +170,9 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
 
         b = border - 1
         if labels[i] == 180:
-            images[i] = cv2.copyMakeBorder(image, b, b, b, b, cv2.BORDER_CONSTANT, value=(17,141,246))
+            images[i] = cv2.copyMakeBorder(image, b, b, b, b, cv2.BORDER_CONSTANT, value=(17,141,246))  # orange
         else:
-            images[i] = cv2.copyMakeBorder(image, b, b, b, b, cv2.BORDER_CONSTANT, value=(245,219,10))
+            images[i] = cv2.copyMakeBorder(image, b, b, b, b, cv2.BORDER_CONSTANT, value=(245,219,10))  # blue
 
     # make plots
     img = image_scatter(features_TSNE, images, scatter_size=8000, img_size=img_size)
@@ -189,7 +189,6 @@ def analyze_images(class_one, class_two, detector_name, descriptor_name, n_featu
 
 
 if __name__ == '__main__':
-    print len(sys.argv)
     if len(sys.argv) == 6:
         detector_name = sys.argv[1]
         descriptor_name = sys.argv[2]
@@ -214,6 +213,6 @@ if __name__ == '__main__':
         for root, dirnames, filenames in os.walk("classified/warts_cream"):
             for filename in fnmatch.filter(filenames, '*.png'):
                 warts_cream.append("classified/warts_cream" + "/" + filename)
-                warts.append("classified/warts_cream" + "/" + filename)
+                # warts.append("classified/warts_cream" + "/" + filename)
 
         analyze_images(warts, negatives, detector_name, descriptor_name, n_features, sensitivity, bow_size, testing=False, cache=False, scatter_size=10000)
