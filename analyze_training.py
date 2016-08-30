@@ -54,7 +54,7 @@ def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIF
 def extract_features(classes, detector_name, descriptor_name, dect_params, n_features):
     features_per_class = []
     for c in classes:
-        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features)
+        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features, testing=True)
         features_per_class.append(features)
     return features_per_class
 
