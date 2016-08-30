@@ -11,7 +11,7 @@ ERASE_LINE = '\x1b[2K'
 detectors = None
 
 
-def get_features_array(images, detector, descriptor, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features_array(images, detector, descriptor, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     """
     This function runs detector.detect() on all images and returns all features in a numpy array
 
@@ -25,6 +25,9 @@ def get_features_array(images, detector, descriptor, sensitivity=2, max_features
 
     descriptor: list or numpy array
         Corresponding images to features. Expects float images from (0,1).
+
+    dect_params: dict
+        If supported these params will be applied on the detector create function
 
     max_features: integer
         Maximum amount of features per image, needed to initialize array of features
@@ -49,7 +52,7 @@ def get_features_array(images, detector, descriptor, sensitivity=2, max_features
             print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
             print "--- Extracting features " + str(filename) + " ---"
 
-        desc = get_features(filename, detector, descriptor, sensitivity, max_features, gray_detector, gray_descriptor, testing)
+        desc = get_features(filename, detector, descriptor, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
         len_features = len(desc)
 
         if featureVectors is None:
@@ -67,16 +70,16 @@ def get_features_array(images, detector, descriptor, sensitivity=2, max_features
     return featureVectors
 
 
-def get_features(filename, detector, descriptor_name, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features(filename, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     image = cv2.imread(filename)
 
     if gray_detector or gray_descriptor:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
     if gray_detector:
-        dect, kps = kps_with_detector(gray, detector, sensitivity, max_features)
+        dect, kps = kps_with_detector(gray, detector, sensitivity, max_features, dect_params)
     else:
-        dect, kps = kps_with_detector(image, detector, sensitivity, max_features)
+        dect, kps = kps_with_detector(image, detector, sensitivity, max_features, dect_params)
 
     if descriptor_name == detector:
         if gray_descriptor:
@@ -107,7 +110,7 @@ def get_features(filename, detector, descriptor_name, sensitivity=2, max_feature
     return desc
 
 
-def kps_with_detector(img, name, sensitivity, n_features):
+def kps_with_detector(img, name, sensitivity, n_features, params):
     detector_func = None
     if name == 'SIFT':
         detector_func = SIFT_detector
@@ -127,7 +130,7 @@ def kps_with_detector(img, name, sensitivity, n_features):
         detector_func = GFTT_detector
     elif name == 'MSER':  # can work on color!
         detector_func = MSER_detector
-    return detector_func(img, sensitivity, n_features)
+    return detector_func(img, sensitivity, n_features, params)
 
 
 def norm_for_descriptor(name):
@@ -150,7 +153,7 @@ def norm_for_descriptor(name):
     return cv2.NORM_L2
 
 
-def get_descriptor(name, sensitivity, n_features):
+def get_descriptor(name, sensitivity, n_features, params):
     if name == 'SIFT':
         detector_func = SIFT_detector
     elif name == 'SURF':
@@ -170,9 +173,11 @@ def get_descriptor(name, sensitivity, n_features):
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#sift-sift
-def SIFT_detector(img, sensitivity, n_features):
+def SIFT_detector(img, sensitivity, n_features, params):
     # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
-    if sensitivity == 2:
+    if params is not None:
+        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, **params)
+    elif sensitivity == 2:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.01, edgeThreshold=20, sigma=0.4)
     elif sensitivity == 1:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.02, edgeThreshold=10, sigma=0.4)
@@ -213,7 +218,7 @@ def get_max_features(img, thresh, thresh_arg, increment, create_func, max_featur
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-def SURF_detector(img, sensitivity, max_features):
+def SURF_detector(img, sensitivity, max_features, params):
     return get_max_features(img,
                             thresh=10,
                             thresh_arg="hessianThreshold",
@@ -224,7 +229,7 @@ def SURF_detector(img, sensitivity, max_features):
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#SURF%20:%20public%20Feature2D
-def AKAZE_detector(img, sensitivity, max_features):
+def AKAZE_detector(img, sensitivity, max_features, params):
     return get_max_features(img,
                             thresh=0.000001,
                             thresh_arg="threshold",
@@ -235,7 +240,7 @@ def AKAZE_detector(img, sensitivity, max_features):
 
 
 # http://docs.opencv.org/trunk/d3/d61/classcv_1_1KAZE.html#gsc.tab=0
-def KAZE_detector(img, sensitivity, max_features):
+def KAZE_detector(img, sensitivity, max_features, params):
     return get_max_features(img,
                             thresh=0.000001,
                             thresh_arg="threshold",
@@ -247,7 +252,7 @@ def KAZE_detector(img, sensitivity, max_features):
 
 # http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#mser
 # cannot seem to get MSER working for wart images
-def MSER_detector(img, sensitivity, max_features):
+def MSER_detector(img, sensitivity, max_features, params):
     return get_max_features(img,
                             thresh=3,
                             thresh_arg="_max_area",
@@ -258,7 +263,7 @@ def MSER_detector(img, sensitivity, max_features):
 
 
 # http://docs.opencv.org/trunk/d7/d19/classcv_1_1AgastFeatureDetector.html#gsc.tab=0
-def Agast_detector(img, sensitivity, max_features):
+def Agast_detector(img, sensitivity, max_features, params):
     return get_max_features(img,
                             thresh=2,
                             thresh_arg="threshold",
@@ -269,7 +274,7 @@ def Agast_detector(img, sensitivity, max_features):
 
 
 # http://docs.opencv.org/trunk/db/d95/classcv_1_1ORB.html#gsc.tab=0
-def ORB_detector(img, sensitivity, n_features):
+def ORB_detector(img, sensitivity, n_features, params):
     if sensitivity == 2:
         orb = cv2.ORB_create(n_features, edgeThreshold=1)
     elif sensitivity == 1:
@@ -283,7 +288,7 @@ def ORB_detector(img, sensitivity, n_features):
 
 # http://docs.opencv.org/trunk/df/d21/classcv_1_1GFTTDetector.html#gsc.tab=0
 # J. Shi and C. Tomasi. Good Features to Track. Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition, pages 593-600, June 1994.
-def GFTT_detector(img, sensitivity, n_features):
+def GFTT_detector(img, sensitivity, n_features, params):
     if sensitivity == 2:
         gftt = cv2.GFTTDetector_create(maxCorners=n_features)
     elif sensitivity == 1:
@@ -298,7 +303,7 @@ def GFTT_detector(img, sensitivity, n_features):
 
 
 # http://docs.opencv.org/3.0-beta/modules/features2d/doc/feature_detection_and_description.html#brisk
-def BRISK_detector(sensitivity, n_features):
+def BRISK_detector(sensitivity, n_features, params):
     print "ERROR: BRISK detector not implemented"
     # the BRISK implementation is broken in openCV (https://github.com/opencv/opencv/pull/3383)
     return None, None
@@ -306,14 +311,14 @@ def BRISK_detector(sensitivity, n_features):
 
 # cannot seem to get it working
 # http://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html?highlight=surffeaturedetector#StarFeatureDetector%20:%20public%20FeatureDetector
-def STAR_detector(img, sensitivity, n_features):
+def STAR_detector(img, sensitivity, n_features, params):
     return cv2.xfeatures2d.StarDetector_create(responseThreshold=5, lineThresholdProjected=5)
 
 
 # http://docs.opencv.org/3.1.0/df/db4/classcv_1_1xfeatures2d_1_1FREAK.html#gsc.tab=0
 # NB only descriptor!
 # diffusivity
-def FREAK_descriptor(img, sensitivity, keypoints):
+def FREAK_descriptor(img, sensitivity, keypoints, params):
     if sensitivity == 2:
         freak = cv2.xfeatures2d.FREAK_create(patternScale=10.)
     elif sensitivity == 1:
