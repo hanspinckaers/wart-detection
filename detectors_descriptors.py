@@ -48,8 +48,9 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
     featureVectors = []
 
     for i, filename in enumerate(images):
-        if i > 0 and testing:
-            print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
+        if testing:
+            if i > 0:
+                print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
             print "--- Extracting features " + str(filename) + " ---"
 
         desc = get_features(filename, detector, descriptor, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
