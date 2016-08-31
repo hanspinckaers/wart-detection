@@ -24,3 +24,12 @@ scikit-learn
 results
 *.npy
 *.lprof
+test_set
+train_set
+bhtsne
+bh_tsne
+histograms
+kmajority
+output_test
+~*
+.ycm*
