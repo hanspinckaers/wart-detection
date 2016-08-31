@@ -20,8 +20,8 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
     folds = []
     for p in participants_sliced:
         filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"))
-	filenames_pos.sort()
-	filenames_neg.sort()
+        filenames_pos.sort()
+        filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
 
     overall_acc = 0
@@ -42,6 +42,14 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k)
 
         predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
+
+        true_pos = np.sum((predictions == 1) & (labels == 1))
+        false_pos = np.sum((predictions == 1) & (labels == 0))
+        true_neg = np.sum((predictions == 0) & (labels == 0))
+        false_neg = np.sum((predictions == 0) & (labels == 1))
+
+        print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
+
         accuracy = (np.sum(np.equal(predictions, labels)) * 1.) / len(test_filenames)
         overall_acc += accuracy
         print "--- kfold: %s, accuracy: %s" % (str(i), str(accuracy))
@@ -212,6 +220,6 @@ if __name__ == '__main__':
                 if part not in parts:
                     parts.append(part)
 
-	parts.sort()
+        parts.sort()
 
         cross_validate_with_participants(5, parts)
