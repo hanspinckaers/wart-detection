@@ -13,16 +13,20 @@ from sklearn import neighbors
 
 
 def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
+    overall_start_time = time.time()
+
     random.seed(0)
     participants_sliced = divide_in(participants, kfold)
     folds = []
     for p in participants_sliced:
         filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"))
+	filenames_pos.sort()
+	filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
 
     overall_acc = 0
     for i, f in enumerate(folds):
-        print "--- fold: " + str(i)
+        print "----- Fold: " + str(i)
 
         train_set_pos = []
         train_set_neg = []
@@ -36,13 +40,16 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         random.shuffle(test_filenames)
 
         model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k)
-        predictions, labels, missed = predictions_with_set(test_filenames, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
 
-        accuracy = (np.sum(np.equal(predictions, labels)) * 1. - missed) / len(test_filenames)
+        predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
+        accuracy = (np.sum(np.equal(predictions, labels)) * 1.) / len(test_filenames)
         overall_acc += accuracy
         print "--- kfold: %s, accuracy: %s" % (str(i), str(accuracy))
 
-    print "--- overall accuracy: " + str(overall_acc / float(i))
+    print "----- Overall accuracy: " + str(overall_acc / float(kfold))
+    print("----- Overall kfold took %s ---" % (time.time() - overall_start_time))
+
+    return overall_acc / float(kfold)
 
 
 def filenames_for_participants(participants, directory):
@@ -60,6 +67,8 @@ def filenames_for_participants(participants, directory):
                 continue
             if 'dubious' in root:
                 continue
+            if '.Apple' in root:
+                continue
 
             if 'cream' in root or 'wart' in root:
                 pos.append(root + "/" + filename)
@@ -72,7 +81,7 @@ def filenames_for_participants(participants, directory):
 def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
     overall_start_time = time.time()
 
-    print("---Gather features---")
+    print("--- Gather features---")
     pos_feat_p_img, neg_feat_p_img = extract_features([train_pos, train_neg], detector_name, descriptor_name, dect_params, n_features)
     pos_feat = [item for sublist in pos_feat_p_img for item in sublist]
     pos_feat = np.asarray(pos_feat)
@@ -81,16 +90,16 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     neg_feat = np.asarray(neg_feat)
 
     features = np.concatenate((pos_feat, neg_feat))
-    np.random.RandomState(1)
+    np.random.seed(42)
     np.random.shuffle(features)
 
-    print("---Train BOW---")
+    print("--- Train BOW---")
     vocabulary = train_bagofwords(features, bow_size)
 
-    print("---Make hists---")
+    print("--- Make hists---")
     hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
 
-    print("---Fit model---")
+    print("--- Fit model---")
     model = fit_model_kneighbors(hists, labels, k)
 
     print("--- Overall training model took %s ---" % (time.time() - overall_start_time))
@@ -100,15 +109,15 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
 
 def validate_model(model, val_pos, val_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10):
     features = np.concatenate((val_pos, val_neg))
-    np.random.RandomState(1)
+    np.random.seed(21)
     np.random.shuffle(features)
 
 
 def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
-    features = extract_features([test_set], detector_name, descriptor_name, dect_params, n_features)
-    descs, labels, _ = hist_using_vocabulary([features], vocabulary)
-    predictions = model.predict([descs])
-    return predictions, labels, len(features) - len(labels)
+    features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
+    descs, labels, _ = hist_using_vocabulary(features, vocabulary)
+    predictions = model.predict(descs)
+    return predictions, labels
 
 
 def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
@@ -128,6 +137,7 @@ def train_bagofwords(features, bow_size, norm=cv2.NORM_L2):
         bow = cv2.BOWKMeansTrainer(bow_size)
         bow.add(features)
         vocabulary = bow.cluster()
+
     else:
         # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
         vocabulary = kmajority(features.astype(int), bow_size)
@@ -182,7 +192,7 @@ def hist_using_vocabulary(feat_per_img_per_class, vocabulary, norm=cv2.NORM_L2):
             i += 1
 
     if no_feat_counter > 0:
-        print str(os.getpid()) + "--- No histograms for %s images ---" % str(no_feat_counter)
+        print "--- No histograms for %s images ---" % str(no_feat_counter)
 
     return (histograms[0:i], labels[0:i], indices[0:i])
 
@@ -202,4 +212,6 @@ if __name__ == '__main__':
                 if part not in parts:
                     parts.append(part)
 
-        cross_validate_with_participants(3, parts)
+	parts.sort()
+
+        cross_validate_with_participants(5, parts)
