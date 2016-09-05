@@ -5,14 +5,15 @@ import numpy as np
 import time
 import sys
 import random
+from pudb import set_trace
 
 from kmajority import kmajority, compute_hamming_hist
 from detectors_descriptors import get_features_array
 from divide import divide_in
-from sklearn import neighbors
+from sklearn import neighbors, svm
 
 
-def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
+def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15):
     overall_start_time = time.time()
 
     random.seed(0)
@@ -26,6 +27,8 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
     overall_acc = 0
     for i, f in enumerate(folds):
+        if i > 0:
+            break
         print "----- Fold: " + str(i)
 
         train_set_pos = []
@@ -38,15 +41,18 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
         test_filenames = f[0] + f[1]
         random.shuffle(test_filenames)
+        print "Testing with " + str(len(f[0])) + " pos " + str(len(f[1])) + " neg"
+        print "Training with " + str(len(train_set_pos)) + " pos " + str(len(train_set_neg)) + " neg"
 
         model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k)
 
         predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
 
-        true_pos = np.sum((predictions == 1) & (labels == 1))
-        false_pos = np.sum((predictions == 1) & (labels == 0))
-        true_neg = np.sum((predictions == 0) & (labels == 0))
-        false_neg = np.sum((predictions == 0) & (labels == 1))
+        # class 1 = negative
+        true_neg = np.sum((predictions == 1) & (labels == 1))
+        false_neg = np.sum((predictions == 1) & (labels == 0))
+        true_pos = np.sum((predictions == 0) & (labels == 0))
+        false_pos = np.sum((predictions == 0) & (labels == 1))
 
         print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
 
@@ -87,6 +93,13 @@ def filenames_for_participants(participants, directory):
 
 
 def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
+
+    feat = np.load("f_cache.npy")
+    classes = np.load("c_cache.npy")
+    model = fit_model_svm(feat, classes)
+
+    return model, np.array([])
+
     overall_start_time = time.time()
 
     print("--- Gather features---")
@@ -108,7 +121,8 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
 
     print("--- Fit model---")
-    model = fit_model_kneighbors(hists, labels, k)
+    # model = fit_model_kneighbors(hists, labels, k)
+    model = fit_model_svm(hists, labels)
 
     print("--- Overall training model took %s ---" % (time.time() - overall_start_time))
 
@@ -122,10 +136,26 @@ def validate_model(model, val_pos, val_neg, detector_name='SIFT', descriptor_nam
 
 
 def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
-    features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
-    descs, labels, _ = hist_using_vocabulary(features, vocabulary)
+    descs = np.load("des_cache.npy")
+    indices = np.load("indices_cache.npy")
+    # features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
+    # descs, _, indices = hist_using_vocabulary(features, vocabulary)
+
+    # np.save("des_cache", descs)
+    # np.save("indices_cache", indices)
     predictions = model.predict(descs)
-    return predictions, labels
+    # set_trace()
+    pred_ind = np.ones(len(test_set[0]) + len(test_set[1]))  # 1 == negative (confusing, i know)
+
+    concat_indices = np.zeros(len(indices[0]) + len(indices[1]))
+    concat_indices[0:len(indices[0])] = indices[0]
+    concat_indices[len(indices[0]):len(indices[0]) + len(indices[1])] = np.array(indices[1]) + len(test_set[0])
+    pred_ind[concat_indices.astype(int)] = predictions
+
+    labels = np.ones(len(test_set[0]) + len(test_set[1]))
+    labels[0:len(test_set[0])] = 0
+
+    return pred_ind, labels
 
 
 def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
@@ -177,7 +207,7 @@ def hist_using_vocabulary(feat_per_img_per_class, vocabulary, norm=cv2.NORM_L2):
 
     histograms = np.zeros((max_count, len(vocabulary)), dtype=np.float32)
     labels = np.zeros(max_count)
-    indices = np.zeros(max_count)
+    indices = []
 
     i = 0
     no_feat_counter = 0
@@ -195,19 +225,41 @@ def hist_using_vocabulary(feat_per_img_per_class, vocabulary, norm=cv2.NORM_L2):
 
             histograms[i] = hist
             labels[i] = label
-            indices[i] = j
+
+            if len(indices) < label + 1:
+                indices.append([])
+            indices[label].append(j)
 
             i += 1
 
     if no_feat_counter > 0:
         print "--- No histograms for %s images ---" % str(no_feat_counter)
 
-    return (histograms[0:i], labels[0:i], indices[0:i])
+    return (histograms[0:i], labels[0:i], indices)
 
 
 def fit_model_kneighbors(feat, classes, k, weights='uniform'):
     clf = neighbors.KNeighborsClassifier(k, weights=weights)
     clf.fit(feat, classes)
+    return clf
+
+
+def fit_model_svm(feat, classes):
+    # np.save("f_cache", np.array(feat))
+    # np.save("c_cache", classes)
+    # C: controls tradeoff between smooth decision boundary and classifying training points correctly
+    # gamma: defines how much influence a single training example has
+
+    clf = svm.SVC(C=1, gamma=0.1, class_weight='balanced', cache_size=5000)
+
+    # C = 0.7 gives 0.41 accuracy -.-
+
+    # clf.fit(feat, classes, class_weight={"1": 1.5}, cache_size=7000)  # negative is more important, play with class_weight?
+    clf.fit(feat, classes)
+
+    # Proper choice of C and gamma is critical to the SVMs performance.
+    # One is advised to use sklearn.grid_search.GridSearchCV with C and gamma spaced exponentially far apart to choose good values.
+
     return clf
 
 
