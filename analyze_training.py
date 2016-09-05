@@ -5,7 +5,6 @@ import numpy as np
 import time
 import sys
 import random
-from pudb import set_trace
 
 from kmajority import kmajority, compute_hamming_hist
 from detectors_descriptors import get_features_array
@@ -27,8 +26,6 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
     overall_acc = 0
     for i, f in enumerate(folds):
-        if i > 0:
-            break
         print "----- Fold: " + str(i)
 
         train_set_pos = []
@@ -44,7 +41,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         print "Testing with " + str(len(f[0])) + " pos " + str(len(f[1])) + " neg"
         print "Training with " + str(len(train_set_pos)) + " pos " + str(len(train_set_neg)) + " neg"
 
-        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k)
+        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params)
 
         predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
 
@@ -92,13 +89,12 @@ def filenames_for_participants(participants, directory):
     return (pos, neg)
 
 
-def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15):
+def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15, model_params=None):
+    # feat = np.load("f_cache.npy")
+    # classes = np.load("c_cache.npy")
+    # model = fit_model_svm(feat, classes)
 
-    feat = np.load("f_cache.npy")
-    classes = np.load("c_cache.npy")
-    model = fit_model_svm(feat, classes)
-
-    return model, np.array([])
+    # return model, np.array([])
 
     overall_start_time = time.time()
 
@@ -122,7 +118,7 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
 
     print("--- Fit model---")
     # model = fit_model_kneighbors(hists, labels, k)
-    model = fit_model_svm(hists, labels)
+    model = fit_model_svm(hists, labels, model_params)
 
     print("--- Overall training model took %s ---" % (time.time() - overall_start_time))
 
@@ -136,15 +132,15 @@ def validate_model(model, val_pos, val_neg, detector_name='SIFT', descriptor_nam
 
 
 def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
-    descs = np.load("des_cache.npy")
-    indices = np.load("indices_cache.npy")
-    # features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
-    # descs, _, indices = hist_using_vocabulary(features, vocabulary)
+    # descs = np.load("des_cache.npy")
+    # indices = np.load("indices_cache.npy")
+    features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
+    descs, _, indices = hist_using_vocabulary(features, vocabulary)
 
     # np.save("des_cache", descs)
     # np.save("indices_cache", indices)
     predictions = model.predict(descs)
-    # set_trace()
+
     pred_ind = np.ones(len(test_set[0]) + len(test_set[1]))  # 1 == negative (confusing, i know)
 
     concat_indices = np.zeros(len(indices[0]) + len(indices[1]))
@@ -244,13 +240,16 @@ def fit_model_kneighbors(feat, classes, k, weights='uniform'):
     return clf
 
 
-def fit_model_svm(feat, classes):
+def fit_model_svm(feat, classes, model_params):
     # np.save("f_cache", np.array(feat))
     # np.save("c_cache", classes)
     # C: controls tradeoff between smooth decision boundary and classifying training points correctly
     # gamma: defines how much influence a single training example has
 
-    clf = svm.SVC(C=1, gamma=0.1, class_weight='balanced', cache_size=5000)
+    # C=1, gamma=0.1 gives ~ 77 % acc
+    model_params['class_weight'] = 'balanced'
+    model_params['cache_size'] = 5000
+    clf = svm.SVC(**model_params)
 
     # C = 0.7 gives 0.41 accuracy -.-
 
