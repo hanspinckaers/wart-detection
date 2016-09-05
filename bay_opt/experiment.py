@@ -21,14 +21,14 @@ def main(job_id, params):
 
     parts.sort()
     dect_params = {
-        "n_features": params['n_features'],
+        "nfeatures": params['nfeatures'],
         "contrastThreshold": params['contrastThreshold'],
         "edgeThreshold": params['edgeThreshold'],
         "sigma": params['sigma']
     }
     model_params = {
-        "C": params['C'],
-        "gamma": params['gamma']
+        "C": 10.**params['C'],
+        "gamma": 10.**params['gamma']
     }
     print params
     kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params)

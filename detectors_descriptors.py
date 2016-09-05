@@ -177,7 +177,7 @@ def get_descriptor(name, sensitivity, n_features, params):
 def SIFT_detector(img, sensitivity, n_features, params):
     # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
     if params is not None:
-        sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, **params)
+        sift = cv2.xfeatures2d.SIFT_create(**params)
     elif sensitivity == 2:
         sift = cv2.xfeatures2d.SIFT_create(nfeatures=n_features, contrastThreshold=0.01, edgeThreshold=20, sigma=0.4)
     elif sensitivity == 1:

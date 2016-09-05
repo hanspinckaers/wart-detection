@@ -43,6 +43,9 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
         model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params)
 
+        if model is None:
+            return 0.
+
         predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
 
         # class 1 = negative
@@ -111,6 +114,8 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     np.random.shuffle(features)
 
     print("--- Train BOW---")
+    if len(features) == 0:
+        return None, None
     vocabulary = train_bagofwords(features, bow_size)
 
     print("--- Make hists---")
@@ -272,5 +277,14 @@ if __name__ == '__main__':
                     parts.append(part)
 
         parts.sort()
-
-        cross_validate_with_participants(5, parts)
+        dect_params = {
+            "nfeatures": 10,
+            "contrastThreshold": 0.02,
+            "edgeThreshold": 20,
+            "sigma": 0.04
+        }
+        model_params = {
+            "C": 10.**1,
+            "gamma": 10.**1
+        }
+        kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=1000, model_params=model_params)
