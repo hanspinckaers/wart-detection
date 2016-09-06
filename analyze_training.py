@@ -3,9 +3,9 @@ import os
 import fnmatch
 import numpy as np
 import time
-import sys
 import random
 
+from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
 from detectors_descriptors import get_features_array
 from divide import divide_in
@@ -24,7 +24,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
 
-    overall_acc = 0
+    overall_k = 0
     for i, f in enumerate(folds):
         print "----- Fold: " + str(i)
 
@@ -46,7 +46,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         if model is None:
             return 0.
 
-        predictions, labels = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
+        predictions, labels, covered = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
 
         # class 1 = negative
         true_neg = np.sum((predictions == 1) & (labels == 1))
@@ -54,16 +54,19 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         true_pos = np.sum((predictions == 0) & (labels == 0))
         false_pos = np.sum((predictions == 0) & (labels == 1))
 
+        covered = len(labels) / float(len(test_filenames))
+        youden = (true_pos / (true_pos + false_neg)) + (true_neg / (true_neg + false_pos)) - 1
+
         print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
 
         accuracy = (np.sum(np.equal(predictions, labels)) * 1.) / len(test_filenames)
-        overall_acc += accuracy
-        print "--- kfold: %s, accuracy: %s" % (str(i), str(accuracy))
+        overall_k += youden * covered
+        print "--- kfold: %s, accuracy: %s, youden*coverage: %s" % (str(i), str(accuracy), str(youden * covered))
 
-    print "----- Overall accuracy: " + str(overall_acc / float(kfold))
+    print "----- Overall youden: " + str(overall_k / float(kfold))
     print("----- Overall kfold took %s ---" % (time.time() - overall_start_time))
 
-    return overall_acc / float(kfold)
+    return overall_k / float(kfold)
 
 
 def filenames_for_participants(participants, directory):
@@ -156,7 +159,7 @@ def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', desc
     labels = np.ones(len(test_set[0]) + len(test_set[1]))
     labels[0:len(test_set[0])] = 0
 
-    return pred_ind, labels
+    return pred_ind, labels, len(predictions) / float(len(test_set[0]) + len(test_set[1]))
 
 
 def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
@@ -166,7 +169,7 @@ def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIF
 def extract_features(classes, detector_name, descriptor_name, dect_params, n_features):
     features_per_class = []
     for c in classes:
-        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features, testing=True)
+        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features)
         features_per_class.append(features)
     return features_per_class
 
@@ -268,23 +271,22 @@ def fit_model_svm(feat, classes, model_params):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) == 3:
-        parts = []
-        for root, dirnames, filenames in os.walk("train_set"):
-            for filename in fnmatch.filter(filenames, '*.png'):
-                part = filename.split(" - ")[0]
-                if part not in parts:
-                    parts.append(part)
+    parts = []
+    for root, dirnames, filenames in os.walk("train_set"):
+        for filename in fnmatch.filter(filenames, '*.png'):
+            part = filename.split(" - ")[0]
+            if part not in parts:
+                parts.append(part)
 
-        parts.sort()
-        dect_params = {
-            "nfeatures": 10,
-            "contrastThreshold": 0.02,
-            "edgeThreshold": 20,
-            "sigma": 0.04
-        }
-        model_params = {
-            "C": 10.**1,
-            "gamma": 10.**1
-        }
-        kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=1000, model_params=model_params)
+    parts.sort()
+    dect_params = {
+        "nfeatures": 10,
+        "contrastThreshold": 0.01,
+        "edgeThreshold": 20,
+        "sigma": 0.4
+    }
+    model_params = {
+        "C": 1,
+        "gamma": 0.01
+    }
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=1000, model_params=model_params)
