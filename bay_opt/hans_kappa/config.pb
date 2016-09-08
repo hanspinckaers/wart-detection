@@ -6,7 +6,7 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  -4
-	max:  3
+	max:  5
 }
 
 variable {
@@ -14,7 +14,7 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  -4
-	max:  3
+	max:  5
 }
 
 variable {
@@ -37,7 +37,7 @@ variable {
 	name: "contrastThreshold"
 	type: FLOAT
 	size: 1
-	min:  0.01
+	min:  0.001
 	max:  0.1
 }
 
@@ -53,6 +53,6 @@ variable {
 	name: "sigma"
 	type: FLOAT
 	size: 1
-	min:  0.2
+	min:  0.02
 	max:  2 
 }
