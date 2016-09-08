@@ -1,0 +1,16 @@
+Running in wrapper mode for '20050'
+
+Running python job.
+
+{u'nfeatures': array([100]), u'bow_size': array([250]), u'svm_gamma': array([-2.26242383]), u'edgeThreshold': array([ 44.86668634]), u'svm_C': array([ 1.65390625]), u'sigma': array([ 0.2]), u'contrastThreshold': array([ 0.01])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+Got result -0.000000
+
+Job file reloaded.
+Completed successfully in 51.06 seconds. [-0.000000]
+setting job 20050 complete
+set...

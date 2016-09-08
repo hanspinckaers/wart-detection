@@ -1,0 +1,77 @@
+Running in wrapper mode for '20006'
+
+Running python job.
+
+{u'nfeatures': array([94]), u'bow_size': array([1432]), u'svm_gamma': array([ 2.49936731]), u'edgeThreshold': array([ 9.45715424]), u'svm_C': array([ 0.7815118]), u'sigma': array([ 1.63942287]), u'contrastThreshold': array([ 0.05960256])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 3836 images ---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 451.776412964 ---
+--- No histograms for 1215 images ---
+TP: 38 FP: 17 TN 1456 FN: 913
+--- kfold: 0, accuracy: 0.616336633663, hans_kappa: 0.344599459946
+----- Fold: 1
+Testing with 900 pos 1372 neg
+Training with 3400 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 4081 images ---
+--- Fit model---
+--- Overall training model took 508.521771908 ---
+--- No histograms for 970 images ---
+TP: 598 FP: 626 TN 746 FN: 302
+--- kfold: 1, accuracy: 0.591549295775, hans_kappa: 0.279977043634
+----- Fold: 2
+Testing with 785 pos 1569 neg
+Training with 3515 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 3968 images ---
+--- Fit model---
+--- Overall training model took 429.507325888 ---
+--- No histograms for 1083 images ---
+TP: 506 FP: 638 TN 931 FN: 279
+--- kfold: 2, accuracy: 0.610450297366, hans_kappa: 0.238816090452
+----- Fold: 3
+Testing with 889 pos 1174 neg
+Training with 3411 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 4188 images ---
+--- Fit model---
+--- Overall training model took 479.395015955 ---
+--- No histograms for 863 images ---
+TP: 36 FP: 19 TN 1155 FN: 853
+--- kfold: 3, accuracy: 0.577314590402, hans_kappa: 0.380734147094
+----- Fold: 4
+Testing with 775 pos 1375 neg
+Training with 3525 pos 5588 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 4131 images ---
+--- Fit model---
+--- Overall training model took 577.639096975 ---
+--- No histograms for 920 images ---
+TP: 541 FP: 594 TN 781 FN: 234
+--- kfold: 4, accuracy: 0.61488372093, hans_kappa: 0.27268927364
+----- Overall accuracy: 0.303363202953
+----- Overall kfold took 2605.98627996 ---
+Got result -0.303363
+
+Job file reloaded.
+Completed successfully in 2606.32 seconds. [-0.303363]
+setting job 20006 complete
+set...

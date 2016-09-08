@@ -1,0 +1,79 @@
+Running in wrapper mode for '20008'
+
+Running python job.
+
+{u'nfeatures': array([69]), u'bow_size': array([1331]), u'svm_gamma': array([-3.66276681]), u'edgeThreshold': array([ 29.60030684]), u'svm_C': array([ 1.20445746]), u'sigma': array([ 1.69101648]), u'contrastThreshold': array([ 0.049163])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 2827 images ---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 699.951272011 ---
+--- No histograms for 964 images ---
+/home/hans/wart-detection/analyze_training.py:58: RuntimeWarning: invalid value encountered in divide
+  ppv = (true_pos / float(true_pos + false_pos))
+TP: 0 FP: 0 TN 1473 FN: 951
+--- kfold: 0, accuracy: 0.607673267327, hans_kappa: nan
+----- Fold: 1
+Testing with 900 pos 1372 neg
+Training with 3400 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 3061 images ---
+--- Fit model---
+--- Overall training model took 823.967792988 ---
+--- No histograms for 730 images ---
+TP: 0 FP: 0 TN 1372 FN: 900
+--- kfold: 1, accuracy: 0.603873239437, hans_kappa: nan
+----- Fold: 2
+Testing with 785 pos 1569 neg
+Training with 3515 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 2975 images ---
+--- Fit model---
+--- Overall training model took 606.948407888 ---
+--- No histograms for 816 images ---
+TP: 0 FP: 0 TN 1569 FN: 785
+--- kfold: 2, accuracy: 0.666525063721, hans_kappa: nan
+----- Fold: 3
+Testing with 889 pos 1174 neg
+Training with 3411 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 3209 images ---
+--- Fit model---
+--- Overall training model took 520.872583866 ---
+--- No histograms for 582 images ---
+TP: 0 FP: 0 TN 1174 FN: 889
+--- kfold: 3, accuracy: 0.569074163839, hans_kappa: nan
+----- Fold: 4
+Testing with 775 pos 1375 neg
+Training with 3525 pos 5588 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 3092 images ---
+--- Fit model---
+--- Overall training model took 541.160208941 ---
+--- No histograms for 699 images ---
+TP: 608 FP: 843 TN 532 FN: 167
+--- kfold: 4, accuracy: 0.53023255814, hans_kappa: 0.282790697674
+----- Overall accuracy: nan
+----- Overall kfold took 3383.08090997 ---
+Got result nan
+
+Job file reloaded.
+Completed successfully in 3383.34 seconds. [nan]
+setting job 20008 complete
+Exception AttributeError: "ExperimentGrid instance has no attribute 'vmap'" in <bound method ExperimentGrid.__del__ of <ExperimentGrid.ExperimentGrid instance at 0x7f02b5f78bd8>> ignored

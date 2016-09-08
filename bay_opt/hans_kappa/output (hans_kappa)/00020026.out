@@ -1,0 +1,86 @@
+Running in wrapper mode for '20026'
+
+Running python job.
+
+{u'nfeatures': array([10]), u'bow_size': array([250]), u'svm_gamma': array([ 0.20518778]), u'edgeThreshold': array([ 31.54848207]), u'svm_C': array([ 0.79006493]), u'sigma': array([ 1.62961012]), u'contrastThreshold': array([ 0.01])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 40 images ---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 353.41874814 ---
+--- No histograms for 29 images ---
+TP: 715 FP: 332 TN 1141 FN: 236
+--- kfold: 0, accuracy: 0.765676567657, hans_kappa: 0.674733483377
+----- Fold: 1
+Testing with 900 pos 1372 neg
+Training with 3400 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 57 images ---
+--- Fit model---
+--- Overall training model took 326.916309118 ---
+--- No histograms for 12 images ---
+TP: 623 FP: 256 TN 1116 FN: 277
+--- kfold: 1, accuracy: 0.765404929577, hans_kappa: 0.70501650403
+----- Fold: 2
+Testing with 785 pos 1569 neg
+Training with 3515 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 55 images ---
+--- Fit model---
+--- Overall training model took 296.126426935 ---
+--- No histograms for 14 images ---
+TP: 572 FP: 281 TN 1288 FN: 213
+--- kfold: 2, accuracy: 0.790144435004, hans_kappa: 0.666586319861
+----- Fold: 3
+Testing with 889 pos 1174 neg
+Training with 3411 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 56 images ---
+--- Fit model---
+--- Overall training model took 367.260898113 ---
+--- No histograms for 13 images ---
+TP: 707 FP: 197 TN 977 FN: 182
+--- kfold: 3, accuracy: 0.816286960737, hans_kappa: 0.777151369043
+----- Fold: 4
+Testing with 775 pos 1375 neg
+Training with 3525 pos 5588 neg
+--- Gather features---
+--- Train BOW---
+----------------------------------------
+Problem running the job:
+(<type 'exceptions.SystemExit'>, SystemExit(0,), <traceback object at 0x7f6c6717ac68>)
+Traceback (most recent call last):
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 41, in job_runner
+    elif job.language == PYTHON: run_python_job(job)
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 131, in run_python_job
+    result = module.main(job.id, params)
+  File "/home/hans/wart-detection/bay_opt/experiment.py", line 38, in main
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params)
+  File "/home/hans/wart-detection/analyze_training.py", line 44, in cross_validate_with_participants
+    model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params)
+  File "/home/hans/wart-detection/analyze_training.py", line 127, in train_model
+    vocabulary = train_bagofwords(features, bow_size)
+  File "/home/hans/wart-detection/analyze_training.py", line 186, in train_bagofwords
+    vocabulary = bow.cluster()
+  File "/home/hans/wart-detection/spearmint/spearmint/bin/../spearmint/main.py", line 323, in sigint_handler
+    sys.exit(0)
+SystemExit: 0
+None
+----------------------------------------
+Job file reloaded.
+Could not find value in output file.
+Job failed in 1764.19 seconds.
