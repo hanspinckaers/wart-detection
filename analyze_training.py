@@ -54,15 +54,19 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         true_pos = np.sum((predictions == 0) & (labels == 0))
         false_pos = np.sum((predictions == 0) & (labels == 1))
 
-        youden = (true_pos / float(true_pos + false_neg)) + (true_neg / float(true_neg + false_pos)) - 1
+        spec = true_neg / float(true_neg + false_pos)
+        sens = true_pos / float(true_pos + false_neg)
+
+        # youden = (true_pos / float(true_pos + false_neg)) + (true_neg / float(true_neg + false_pos)) - 1
+        exp_mean = spec**1.75 * sens**0.75
 
         print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
 
         accuracy = (np.sum(np.equal(predictions, labels)) * 1.) / len(test_filenames)
-        overall_k += youden * covered
-        print "--- kfold: %s, accuracy: %s, youden*coverage: %s" % (str(i), str(accuracy), str(youden * covered))
+        overall_k += exp_mean * covered
+        print "--- kfold: %s, accuracy: %s, exp_mean*coverage: %s" % (str(i), str(accuracy), str(exp_mean * covered))
 
-    print "----- Overall youden: " + str(overall_k / float(kfold))
+    print "----- Overall exp mean: " + str(overall_k / float(kfold))
     print("----- Overall kfold took %s ---" % (time.time() - overall_start_time))
 
     return overall_k / float(kfold)

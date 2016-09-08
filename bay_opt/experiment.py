@@ -6,6 +6,7 @@ import sys
 sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from analyze_training import cross_validate_with_participants
 
+
 # run with ./spearmint/spearmint/bin/spearmint ./bay_opt/config.pb --drive=local --method=GPEIOptChooser --max-concurrent=4
 def main(job_id, params):
     '''Params is a dictionary mapping from parameters specified in the
