@@ -154,7 +154,7 @@ def norm_for_descriptor(name):
     return cv2.NORM_L2
 
 
-def get_descriptor(name, sensitivity, n_features, params):
+def get_descriptor(name, sensitivity, n_features, params=None):
     if name == 'SIFT':
         detector_func = SIFT_detector
     elif name == 'SURF':
