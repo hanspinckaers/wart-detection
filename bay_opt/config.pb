@@ -6,7 +6,7 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  -4
-	max:  5
+	max:  3
 }
 
 variable {
@@ -14,15 +14,15 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  -4
-	max:  5
+	max:  3
 }
 
 variable {
 	name: "bow_size"
 	type: INT
 	size: 1
-	min:  250
-	max:  3000
+	min:  100
+	max:  2000
 }
 
 variable {
@@ -53,6 +53,6 @@ variable {
 	name: "sigma"
 	type: FLOAT
 	size: 1
-	min:  0.02
-	max:  2 
+	min:  0.2
+	max:  5 
 }

@@ -1,8 +1,12 @@
-from ..analyze_training import cross_validate_with_participants
 import fnmatch
 import os
+from os import path
+import sys
 
+sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+from analyze_training import cross_validate_with_participants
 
+# run with ./spearmint/spearmint/bin/spearmint ./bay_opt/config.pb --drive=local --method=GPEIOptChooser --max-concurrent=4
 def main(job_id, params):
     '''Params is a dictionary mapping from parameters specified in the
     config.json file to values that Spearmint has sugguested. This
@@ -27,8 +31,8 @@ def main(job_id, params):
         "sigma": params['sigma']
     }
     model_params = {
-        "C": 10.**params['C'],
-        "gamma": 10.**params['gamma']
+        "C": 10.**params['svm_C'],
+        "gamma": 10.**params['svm_gamma']
     }
     print params
     kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params)

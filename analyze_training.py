@@ -54,8 +54,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         true_pos = np.sum((predictions == 0) & (labels == 0))
         false_pos = np.sum((predictions == 0) & (labels == 1))
 
-        covered = len(labels) / float(len(test_filenames))
-        youden = (true_pos / (true_pos + false_neg)) + (true_neg / (true_neg + false_pos)) - 1
+        youden = (true_pos / float(true_pos + false_neg)) + (true_neg / float(true_neg + false_pos)) - 1
 
         print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
 
