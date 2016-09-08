@@ -1,6 +1,5 @@
 import numpy as np
 import time
-import pudb
 
 from joblib import Parallel, delayed
 import os
@@ -29,7 +28,7 @@ def kmajority(vectors, k):
     np.savetxt('_t_vectors_' + str(os.getpid()), vectors, fmt='%i')
 
     # when we are really close log which centroids are changing (check to see if we are converging)
-    last_runs = False
+    # last_runs = False
 
     j = 0  # count the number of iterations
     while centroids_changed:
@@ -37,10 +36,8 @@ def kmajority(vectors, k):
 
         overall_bits_changed = 0  # bits changed this run
 
-        start_time = time.time()
-
         # save new centroids for kmajority c binary
-	centroids_filename = '_t_centroids_' + str(os.getpid())
+        centroids_filename = '_t_centroids_' + str(os.getpid())
         np.savetxt('_t_centroids_' + str(os.getpid()), centroids, fmt='%i')
 
         # divide the vectors and parallelize the search for closest centroids
@@ -92,7 +89,7 @@ def kmajority(vectors, k):
         j += 1
         # print("--- Run: %s changed %s bits in %.3f seconds" % (str(j), str(overall_bits_changed), time.time() - start_time))
 
-        last_runs = (overall_bits_changed < 10)
+        # last_runs = (overall_bits_changed < 10)
 
     print("--- Overall kmajority %.3f seconds -" % (time.time() - overall_start_time))
 

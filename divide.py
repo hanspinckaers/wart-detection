@@ -2,8 +2,8 @@ import numpy as np
 import fnmatch
 import os
 import sys
-import math, random
-import pudb
+import math
+import random
 import shutil
 
 
@@ -136,4 +136,5 @@ if __name__ == '__main__':
         elif 'wart' in file:
             shutil.copy(file, 'train_set/wart/')
         else:
-            shutil.copy(file, 'train_set/neg/')
+        shutil.copy(file, 'train_set/neg/')
+

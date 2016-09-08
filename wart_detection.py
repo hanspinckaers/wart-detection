@@ -21,7 +21,6 @@ import numpy as np
 import cv2
 import time
 import os.path
-# import pudb  # this is the debugger
 from utilities import segment_hclustering_sklearn, get_possible_finger_clusters, similarity_to_circle
 
 
@@ -74,14 +73,14 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
             cv2.imshow("shifted", shifted)
 
         skin_clusters = get_possible_finger_clusters(clusters, shifted, img_path)
-        
+
         mask = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         mask[skin_clusters[0] == 0] = 0
         mask[skin_clusters[0] == 1] = 255
-        
+
         if not os.path.exists("cache/" + img_path):
             os.makedirs("cache/" + img_path)
-        
+
         # fill holes in mask
         _, contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(mask, contours, -1, 255, thickness=cv2.FILLED)
@@ -147,10 +146,10 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
         # pu.db
         ret, sure_fg = cv2.threshold(dist_transform, thres_start, 255, cv2.THRESH_BINARY)
         sure_fg = np.uint8(sure_fg)
-        
+
         kernel = np.ones((10, 10), np.uint8)
         dilation = cv2.dilate(sure_fg, kernel, iterations=2)
-        
+
         # find results
         im2, contours, hierarchy = cv2.findContours(dilation, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         n_contours = len(contours)
@@ -176,9 +175,9 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
 
         if len(new_contours) > 0:
             contours = new_contours
-        
+
         n_contours = len(contours)
-        
+
         thres_start += 0.1
 
     print img_path + " %.2f" % (time.time() - st) + "s" + " - elapsed time"

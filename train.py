@@ -7,7 +7,7 @@ import random
 
 from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
-from detectors_descriptors import get_features_array
+from features import get_features_array
 from divide import divide_in
 from sklearn import neighbors, svm
 

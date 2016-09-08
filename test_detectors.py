@@ -1,7 +1,5 @@
-from feature_detection import analyze_images
-from joblib import Parallel, delayed
-import os, sys
-import pudb
+import os
+import sys
 import multiprocessing
 
 # arguments:
@@ -9,16 +7,16 @@ detector_name = 'SIFT'
 descriptor_name = 'FREAK'
 
 combinations = [
-    # ['SURF', 'SURF'],
-    # ['SURF', 'FREAK'],
+    ['SURF', 'SURF'],
+    ['SURF', 'FREAK'],
     ['AKAZE', 'AKAZE'],  # AKAZE is the modern version than KAZE (Accelerated KAZE)
     ['KAZE', 'KAZE'],
-    # ['SIFT', 'SIFT'],
-    # ['SIFT', 'FREAK'],
-    # ['ORB', 'ORB'],
+    ['SIFT', 'SIFT'],
+    ['SIFT', 'FREAK'],
+    ['ORB', 'ORB'],
     ['Agast', 'SURF'],
-    # ['GFTT', 'SURF'],
-    # ['MSER', 'SURF'],
+    ['GFTT', 'SURF'],
+    ['MSER', 'SURF'],
 ]
 
 # if len(sys.argv) > 1:
@@ -42,7 +40,7 @@ for det_dec in combinations:
             for b in bow_size:
                 child_pid = os.fork()
                 if child_pid == 0:
-                    os.system("python feature_detection.py " + det_dec[0] + " " + det_dec[1] + " " + str(n) + " " + str(s) + " " + str(b))
+                    os.system("python tsne_scatter.py " + det_dec[0] + " " + det_dec[1] + " " + str(n) + " " + str(s) + " " + str(b))
                     sys.exit(0)
                 else:
                     os.waitpid(child_pid, 0)
