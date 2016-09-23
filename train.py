@@ -299,7 +299,7 @@ if __name__ == '__main__':
             if part not in parts:
                 parts.append(part)
 
-    params = {'nfeatures': [60], 'bow_size': [1013], 'svm_gamma': [1.7507582], 'edgeThreshold': [50.], 'svm_C': [0.47862167], 'sigma': [2.25901868], 'contrastThreshold': [0.001]}
+    params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
     parts.sort()
     dect_params = {
         "nfeatures": params['nfeatures'],
