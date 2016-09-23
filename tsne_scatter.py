@@ -10,7 +10,7 @@ from image_scatter import image_scatter
 from image_scatter import min_resize
 from matplotlib import pyplot as plt
 from kmajority import kmajority, compute_hamming_hist
-from detectors_descriptors import get_descriptor, norm_for_descriptor, get_features_array
+from features import get_descriptor, norm_for_descriptor, get_features_array
 
 
 def analyze_images(class_one, class_two, detector_name, descriptor_name, n_features, sensitivity, bow_size, gray_detector=True, gray_descriptor=True, cache=False, testing=False, img_size=50, border=5, scatter_size=8000):

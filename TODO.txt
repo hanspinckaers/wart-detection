@@ -1,19 +1,6 @@
 - Correcting report text
 
-Features:
-- SIFT
-- SURF
-- HAAR
-- FREAK
-- Star
-
-- texture based features
-
-Bag of words:
-- 1000
-- 500
-
-
-hans@hans-virtual-machine:~$ export DISPLAY=:1
-hans@hans-virtual-machine:~$ /usr/lib/vino/vino-server
-
+- Test set
+- Try Random Forest
+- Inflate training set
+- Human versus Model

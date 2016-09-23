@@ -2,7 +2,6 @@ import scipy.cluster.hierarchy as hac
 from hierarchical_tweaked import AgglomerativeClusteringTreeMatrix
 from sklearn.feature_extraction.image import grid_to_graph
 import numpy as np
-# import pudb
 import cv2
 from scipy.ndimage import measurements
 import math
