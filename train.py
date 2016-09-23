@@ -299,15 +299,17 @@ if __name__ == '__main__':
             if part not in parts:
                 parts.append(part)
 
+    params = {'nfeatures': [60], 'bow_size': [1013], 'svm_gamma': [1.7507582], 'edgeThreshold': [50.], 'svm_C': [0.47862167], 'sigma': [2.25901868], 'contrastThreshold': [0.001]}
     parts.sort()
     dect_params = {
-        "nfeatures": 50,
-        "contrastThreshold": 0.0066,
-        "edgeThreshold": 20,
-        "sigma": 1.5
+        "nfeatures": params['nfeatures'],
+        "contrastThreshold": params['contrastThreshold'],
+        "edgeThreshold": params['edgeThreshold'],
+        "sigma": params['sigma']
     }
     model_params = {
-        "C": 10**2.67,
-        "gamma": 10**-2.05
+        "C": 10.**params['svm_C'],
+        "gamma": 10.**params['svm_gamma']
     }
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=655, model_params=model_params, classifier="forest")
+
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, classifier="forest")
