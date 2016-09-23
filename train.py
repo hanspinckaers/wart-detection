@@ -10,9 +10,11 @@ from kmajority import kmajority, compute_hamming_hist
 from features import get_features_array
 from divide import divide_in
 from sklearn import neighbors, svm
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.externals import joblib
 
 
-def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15):
+def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False):
     overall_start_time = time.time()
 
     random.seed(0)
@@ -23,6 +25,12 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         filenames_pos.sort()
         filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
+
+    if save:
+        # train a whole model
+        model, vocabulary = train_model(filenames_pos, filenames_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
+        joblib.dump(model, 'model.pkl')
+        return 0.
 
     overall_k = 0
     for i, f in enumerate(folds):
@@ -41,7 +49,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         print "Testing with " + str(len(f[0])) + " pos " + str(len(f[1])) + " neg"
         print "Training with " + str(len(train_set_pos)) + " pos " + str(len(train_set_neg)) + " neg"
 
-        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params)
+        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
 
         if model is None:
             return 0.
@@ -98,7 +106,7 @@ def filenames_for_participants(participants, directory):
     return (pos, neg)
 
 
-def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15, model_params=None):
+def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15, model_params=None, classifier="svm"):
     # feat = np.load("f_cache.npy")
     # classes = np.load("c_cache.npy")
     # model = fit_model_svm(feat, classes)
@@ -128,8 +136,12 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
 
     print("--- Fit model---")
-    # model = fit_model_kneighbors(hists, labels, k)
-    model = fit_model_svm(hists, labels, model_params)
+    if classifier == "svm":
+        model = fit_model_svm(hists, labels, model_params)
+    elif classifier == "forest":
+        model = fit_model_forest(hists, labels, model_params)
+    else:
+        model = fit_model_kneighbors(hists, labels, k)
 
     print("--- Overall training model took %s ---" % (time.time() - overall_start_time))
 
@@ -273,6 +285,12 @@ def fit_model_svm(feat, classes, model_params):
     return clf
 
 
+def fit_model_forest(feat, classes, model_params={}):
+    clf = RandomForestClassifier(**model_params)
+    clf.fit(feat, classes)
+    return clf
+
+
 if __name__ == '__main__':
     parts = []
     for root, dirnames, filenames in os.walk("train_set"):
@@ -283,13 +301,13 @@ if __name__ == '__main__':
 
     parts.sort()
     dect_params = {
-        "nfeatures": 10,
-        "contrastThreshold": 0.01,
+        "nfeatures": 50,
+        "contrastThreshold": 0.0066,
         "edgeThreshold": 20,
-        "sigma": 0.4
+        "sigma": 1.5
     }
     model_params = {
-        "C": 1,
-        "gamma": 0.01
+        "C": 10**2.67,
+        "gamma": 10**-2.05
     }
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=1000, model_params=model_params)
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=655, model_params=model_params, classifier="forest")
