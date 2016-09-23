@@ -30,6 +30,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         # train a whole model
         print "----- Training a whole model to save -----"
         model, vocabulary = train_model(filenames_pos, filenames_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
+        np.save("vocabulary_model", vocabulary)
         joblib.dump(model, 'model.pkl')
         return 0.
 
