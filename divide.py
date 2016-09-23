@@ -136,5 +136,4 @@ if __name__ == '__main__':
         elif 'wart' in file:
             shutil.copy(file, 'train_set/wart/')
         else:
-        shutil.copy(file, 'train_set/neg/')
-
+            shutil.copy(file, 'train_set/neg/')
