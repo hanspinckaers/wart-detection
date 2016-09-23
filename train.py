@@ -5,7 +5,7 @@ import numpy as np
 import time
 import random
 
-from pudb import set_trace
+# from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
 from features import get_features_array
 from divide import divide_in
@@ -28,6 +28,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
     if save:
         # train a whole model
+        print "----- Training a whole model to save -----"
         model, vocabulary = train_model(filenames_pos, filenames_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
         joblib.dump(model, 'model.pkl')
         return 0.
@@ -299,7 +300,7 @@ if __name__ == '__main__':
             if part not in parts:
                 parts.append(part)
 
-    params = {'nfeatures': [60], 'bow_size': [1013], 'svm_gamma': [1.7507582], 'edgeThreshold': [50.], 'svm_C': [0.47862167], 'sigma': [2.25901868], 'contrastThreshold': [0.001]}
+    params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
     parts.sort()
     dect_params = {
         "nfeatures": params['nfeatures'],
@@ -312,4 +313,4 @@ if __name__ == '__main__':
         "gamma": 10.**params['svm_gamma']
     }
 
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, classifier="forest")
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, classifier="forest", save=True)
