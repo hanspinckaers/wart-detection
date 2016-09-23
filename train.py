@@ -313,4 +313,4 @@ if __name__ == '__main__':
         "gamma": 10.**params['svm_gamma']
     }
 
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, classifier="forest", save=True)
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, save=True)
