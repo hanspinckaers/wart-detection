@@ -174,7 +174,7 @@ def get_descriptor(name, sensitivity, n_features, params=None):
 
 
 # http://docs.opencv.org/2.4/modules/nonfree/doc/feature_detection.html#sift-sift
-def SIFT_detector(img, sensitivity, n_features, params):
+def SIFT_detector(img, sensitivity, n_features, params=None):
     # params: sift = cv2.xfeatures2d.SIFT_create(nfeatures=10, contrastThreshold=0.02, edgeThreshold=2, sigma=0.4)
     if params is not None:
         sift = cv2.xfeatures2d.SIFT_create(**params)
