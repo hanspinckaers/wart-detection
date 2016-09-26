@@ -12,16 +12,18 @@ from divide import divide_in
 from sklearn import neighbors, svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
+import pudb
 
 
-def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False):
+def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False, cream=True):
     overall_start_time = time.time()
 
     random.seed(0)
     participants_sliced = divide_in(participants, kfold)
     folds = []
     for p in participants_sliced:
-        filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"))
+        filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"), cream=cream)
+        pu.db
         filenames_pos.sort()
         filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
@@ -82,7 +84,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
     return overall_k / float(kfold)
 
 
-def filenames_for_participants(participants, directory):
+def filenames_for_participants(participants, directory, cream=True):
     pos = []
     neg = []
     for root, dirnames, filenames in directory:
@@ -100,9 +102,14 @@ def filenames_for_participants(participants, directory):
             if '.Apple' in root:
                 continue
 
-            if 'cream' in root or 'wart' in root:
-                pos.append(root + "/" + filename)
+            if cream:
+                if 'cream' in root:
+                    pos.append(root + "/" + filename)
             else:
+                if 'wart' in root:
+                    pos.append(root + "/" + filename)
+
+            if 'neg' in root:
                 neg.append(root + "/" + filename)
 
     return (pos, neg)

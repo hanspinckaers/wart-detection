@@ -22,7 +22,7 @@ variable {
 	type: INT
 	size: 1
 	min:  100
-	max:  1500
+	max:  2000
 }
 
 variable {
@@ -30,7 +30,7 @@ variable {
 	type: INT
 	size: 1
 	min:  10
-	max:  50
+	max:  100
 }
 
 variable {
@@ -54,5 +54,5 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  0.2
-	max:  0.9 
+	max:  5 
 }

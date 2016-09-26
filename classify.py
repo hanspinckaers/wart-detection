@@ -32,7 +32,8 @@ image = cv2.imread(args["image"])
 windowSize = (128, 128)
 clf = joblib.load('model.pkl')
 
-params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
+params = {'nfeatures': 33, 'bow_size': 972, 'svm_gamma': 0.23088591, 'edgeThreshold': 50., 'svm_C': -0.75793766, 'sigma': 0.82779888, 'contrastThreshold': 0.001}
+
 dect_params = {
     "nfeatures": params['nfeatures'],
     "contrastThreshold": params['contrastThreshold'],
@@ -46,7 +47,7 @@ for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
     clone = resized.copy()
     n = 0
     detections = []
-    for (x, y, window) in sliding_window(resized, stepSize=15, windowSize=windowSize):
+    for (x, y, window) in sliding_window(resized, stepSize=32, windowSize=windowSize):
         if window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]:
             continue
 
@@ -62,6 +63,12 @@ for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
         hist = hist.astype(np.float32)
 
         prediction = clf.predict([hist])
+        print prediction
+
+        check = resized.copy()
+        cv2.rectangle(check, (x, y), (x + 128, y + 128), (0, 255, 0), 2)
+        cv2.imshow("Window", check)
+        cv2.waitKey(1)
 
         if prediction[0] == 0.:
             detections.append([x, y, 1., windowSize[0], windowSize[1]])

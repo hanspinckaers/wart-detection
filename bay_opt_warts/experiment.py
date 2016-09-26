@@ -7,7 +7,7 @@ sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 from train import cross_validate_with_participants
 
 
-# run with ./spearmint/spearmint/bin/spearmint ./bay_opt/config.pb --drive=local --method=GPEIOptChooser --max-concurrent=2
+# run with ./spearmint/spearmint/bin/spearmint ./bay_opt_warts/config.pb --drive=local --method=GPEIOptChooser --max-concurrent=2
 def main(job_id, params):
     '''Params is a dictionary mapping from parameters specified in the
     config.json file to values that Spearmint has sugguested. This
@@ -36,5 +36,5 @@ def main(job_id, params):
         "gamma": 10.**params['svm_gamma']
     }
     print params
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params)
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, cream=False)
     return -kappa
