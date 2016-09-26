@@ -1,9 +1,9 @@
 import cv2
 import argparse
-import time
 import numpy as np
 from sklearn.externals import joblib
 from features import get_features_img
+from nms import nms
 
 
 # make a pyramid of images
@@ -39,10 +39,14 @@ dect_params = {
     "edgeThreshold": params['edgeThreshold'],
     "sigma": params['sigma']
 }
+
 voca = np.load("vocabulary_model.npy")
 
 for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
-    for (x, y, window) in sliding_window(resized, stepSize=32, windowSize=windowSize):
+    clone = resized.copy()
+    n = 0
+    detections = []
+    for (x, y, window) in sliding_window(resized, stepSize=15, windowSize=windowSize):
         if window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]:
             continue
 
@@ -57,10 +61,16 @@ for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
         hist /= len(descs)
         hist = hist.astype(np.float32)
 
-        prediction = clf.predict(hist)
+        prediction = clf.predict([hist])
 
-        clone = resized.copy()
-        cv2.rectangle(clone, (x, y), (x + windowSize[0], y + windowSize[1]), (0, 255, 0), 2)
-        cv2.imshow("Window", clone)
-        cv2.waitKey(1)
-        time.sleep(0.025)
+        if prediction[0] == 0.:
+            detections.append([x, y, 1., windowSize[0], windowSize[1]])
+            n = n + 1
+
+    preds = nms(detections)
+    for pred in preds:
+        cv2.rectangle(clone, (pred[0], pred[1]), (pred[0] + pred[3], pred[1] + pred[4]), (0, 255, 0), 2)
+
+    cv2.imshow("Window res " + str(i), clone)
+    print n
+cv2.waitKey(0)
