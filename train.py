@@ -23,7 +23,6 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
     folds = []
     for p in participants_sliced:
         filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"), cream=cream)
-        pu.db
         filenames_pos.sort()
         filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
