@@ -73,7 +73,10 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
 
 def get_features(filename, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     image = cv2.imread(filename)
+    get_features_img(image, detector, descriptor_name, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
 
+
+def get_features_img(image, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     if gray_detector or gray_descriptor:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
