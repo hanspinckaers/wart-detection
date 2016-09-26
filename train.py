@@ -279,8 +279,8 @@ def fit_model_svm(feat, classes, model_params):
     # gamma: defines how much influence a single training example has
 
     # C=1, gamma=0.1 gives ~ 77 % acc
-    model_params['class_weight'] = 'balanced'
-    model_params['cache_size'] = 5000
+    # model_params['class_weight'] = 'balanced'
+    model_params['cache_size'] = 2000
     clf = svm.SVC(**model_params)
 
     # C = 0.7 gives 0.41 accuracy -.-
