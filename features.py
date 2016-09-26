@@ -52,7 +52,6 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
             if i > 0:
                 print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
             print "--- Extracting features " + str(filename) + " ---"
-
         desc = get_features(filename, detector, descriptor, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
         len_features = len(desc)
 
@@ -73,7 +72,7 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
 
 def get_features(filename, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
     image = cv2.imread(filename)
-    get_features_img(image, detector, descriptor_name, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
+    return get_features_img(image, detector, descriptor_name, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
 
 
 def get_features_img(image, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
