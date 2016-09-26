@@ -302,6 +302,7 @@ if __name__ == '__main__':
                 parts.append(part)
 
     params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
+    params = {'nfeatures': 33, 'bow_size': 972, 'svm_gamma': 0.23088591, 'edgeThreshold': 50., 'svm_C': -0.75793766, 'sigma': 0.82779888, 'contrastThreshold': 0.001}
     parts.sort()
     dect_params = {
         "nfeatures": params['nfeatures'],
