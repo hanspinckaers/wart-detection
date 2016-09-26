@@ -1,0 +1,16 @@
+Running in wrapper mode for '20093'
+
+Running python job.
+
+{u'nfeatures': array([76]), u'bow_size': array([689]), u'svm_gamma': array([ 0.09892692]), u'edgeThreshold': array([ 30.45120082]), u'svm_C': array([ 0.00566777]), u'sigma': array([ 0.2]), u'contrastThreshold': array([ 0.001])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+Got result -0.000000
+
+Job file reloaded.
+Completed successfully in 74.06 seconds. [-0.000000]
+setting job 20093 complete
+set...

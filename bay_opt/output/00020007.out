@@ -1,0 +1,77 @@
+Running in wrapper mode for '20007'
+
+Running python job.
+
+{u'nfeatures': array([100]), u'bow_size': array([2000]), u'svm_gamma': array([-4.]), u'edgeThreshold': array([ 25.8794699]), u'svm_C': array([-0.2567145]), u'sigma': array([ 5.]), u'contrastThreshold': array([ 0.001])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 17 images ---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 3175.79238296 ---
+--- No histograms for 3 images ---
+TP: 951 FP: 1470 TN 3 FN: 0
+--- kfold: 0, accuracy: 0.393564356436, exp_mean*coverage: 1.9501569394e-05
+----- Fold: 1
+Testing with 900 pos 1372 neg
+Training with 3400 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 18 images ---
+--- Fit model---
+--- Overall training model took 3191.66055107 ---
+--- No histograms for 2 images ---
+TP: 900 FP: 1370 TN 2 FN: 0
+--- kfold: 1, accuracy: 0.397007042254, exp_mean*coverage: 1.08655152997e-05
+----- Fold: 2
+Testing with 785 pos 1569 neg
+Training with 3515 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 12 images ---
+--- Fit model---
+--- Overall training model took 2987.38836193 ---
+--- No histograms for 8 images ---
+TP: 0 FP: 0 TN 1569 FN: 785
+--- kfold: 2, accuracy: 0.666525063721, exp_mean*coverage: 0.0
+----- Fold: 3
+Testing with 889 pos 1174 neg
+Training with 3411 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 15 images ---
+--- Fit model---
+--- Overall training model took 2713.98859 ---
+--- No histograms for 5 images ---
+TP: 889 FP: 1169 TN 5 FN: 0
+--- kfold: 3, accuracy: 0.433349491032, exp_mean*coverage: 7.08311805761e-05
+----- Fold: 4
+Testing with 775 pos 1375 neg
+Training with 3525 pos 5588 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- No histograms for 18 images ---
+--- Fit model---
+--- Overall training model took 2484.26313615 ---
+--- No histograms for 2 images ---
+TP: 0 FP: 0 TN 1375 FN: 775
+--- kfold: 4, accuracy: 0.639534883721, exp_mean*coverage: 0.0
+----- Overall exp mean: 2.0239653054e-05
+----- Overall kfold took 15192.730289 ---
+Got result -0.000020
+
+Job file reloaded.
+Completed successfully in 15192.98 seconds. [-0.000020]
+setting job 20007 complete
+set...
