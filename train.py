@@ -12,7 +12,6 @@ from divide import divide_in
 from sklearn import neighbors, svm
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
-import pudb
 
 
 def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False, cream=True):
@@ -74,7 +73,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         print "TP: " + str(true_pos) + " FP: " + str(false_pos) + " TN " + str(true_neg) + " FN: " + str(false_neg)
 
         accuracy = (np.sum(np.equal(predictions, labels)) * 1.) / len(test_filenames)
-        overall_k += exp_mean * covered
+        overall_k += exp_mean * (covered**0.25)  # previous models were trained without exp weight of coverage)
         print "--- kfold: %s, accuracy: %s, exp_mean*coverage: %s" % (str(i), str(accuracy), str(exp_mean * covered))
 
     print "----- Overall exp mean: " + str(overall_k / float(kfold))
@@ -104,12 +103,13 @@ def filenames_for_participants(participants, directory, cream=True):
             if cream:
                 if 'cream' in root:
                     pos.append(root + "/" + filename)
+                else:
+                    neg.append(root + "/" + filename)
             else:
                 if 'wart' in root:
                     pos.append(root + "/" + filename)
-
-            if 'neg' in root:
-                neg.append(root + "/" + filename)
+                if 'neg' in root:
+                    neg.append(root + "/" + filename)
 
     return (pos, neg)
 

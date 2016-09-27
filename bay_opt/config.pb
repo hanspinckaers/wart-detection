@@ -22,7 +22,7 @@ variable {
 	type: INT
 	size: 1
 	min:  100
-	max:  1500
+	max:  2000
 }
 
 variable {
@@ -30,14 +30,14 @@ variable {
 	type: INT
 	size: 1
 	min:  10
-	max:  50
+	max:  100
 }
 
 variable {
 	name: "contrastThreshold"
 	type: FLOAT
 	size: 1
-	min:  0.001
+	min:  0.0001
 	max:  0.1
 }
 
@@ -46,7 +46,7 @@ variable {
 	type: FLOAT
 	size: 1
 	min:  3
-	max:  50
+	max:  100
 }
 
 variable {
