@@ -1,0 +1,75 @@
+Running in wrapper mode for '20020'
+
+Running python job.
+
+{u'nfeatures': array([50]), u'bow_size': array([1500]), u'svm_gamma': array([ 1.26987554]), u'edgeThreshold': array([ 47.02409965]), u'svm_C': array([ 2.47153697]), u'sigma': array([ 0.9]), u'contrastThreshold': array([ 0.001])}
+----- Fold: 0
+Testing with 717 pos 1473 neg
+Training with 2072 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 5063.87204003 ---
+TP: 430 FP: 102 TN 1371 FN: 287
+--- kfold: 0, accuracy: 0.822374429224, exp_mean*coverage: 0.601066763351
+----- Fold: 1
+Testing with 539 pos 1372 neg
+Training with 2250 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 5211.85457611 ---
+TP: 362 FP: 86 TN 1286 FN: 177
+--- kfold: 1, accuracy: 0.862375719519, exp_mean*coverage: 0.662432839621
+----- Fold: 2
+Testing with 493 pos 1569 neg
+Training with 2296 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 5137.55706692 ---
+TP: 356 FP: 119 TN 1450 FN: 137
+--- kfold: 2, accuracy: 0.875848690592, exp_mean*coverage: 0.682348375052
+----- Fold: 3
+Testing with 568 pos 1174 neg
+Training with 2221 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+----------------------------------------
+Problem running the job:
+(<type 'exceptions.SystemExit'>, SystemExit(0,), <traceback object at 0x7fdbc643c290>)
+Traceback (most recent call last):
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 41, in job_runner
+    elif job.language == PYTHON: run_python_job(job)
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 131, in run_python_job
+    result = module.main(job.id, params)
+  File "/home/hans/wart-detection/bay_opt/experiment.py", line 39, in main
+  File "/home/hans/wart-detection/train.py", line 55, in cross_validate_with_participants
+    model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
+  File "/home/hans/wart-detection/train.py", line 141, in train_model
+    vocabulary = train_bagofwords(features, bow_size)
+  File "/home/hans/wart-detection/train.py", line 204, in train_bagofwords
+    vocabulary = bow.cluster()
+  File "/home/hans/wart-detection/spearmint/spearmint/bin/../spearmint/main.py", line 323, in sigint_handler
+    sys.exit(0)
+SystemExit: 0
+None
+----------------------------------------
+Process Process-444:
+Traceback (most recent call last):
+  File "/usr/lib/python2.7/multiprocessing/process.py", line 258, in _bootstrap
+    self.run()
+  File "/usr/lib/python2.7/multiprocessing/process.py", line 114, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 61, in job_runner
+    job      = load_job(job_file)
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/helpers.py", line 76, in load_job
+    fh = open(filename, 'rb')
+IOError: [Errno 2] No such file or directory: u'/home/hans/wart-detection/bay_opt/jobs/00020020.pb'

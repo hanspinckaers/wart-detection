@@ -1,0 +1,33 @@
+Running in wrapper mode for '3'
+
+Running python job.
+
+{u'nfeatures': array([78]), u'bow_size': array([575]), u'svm_gamma': array([ 1.25]), u'edgeThreshold': array([ 38.25]), u'svm_C': array([-2.25]), u'sigma': array([ 1.4]), u'contrastThreshold': array([ 0.02575])}
+----------------------------------------
+Problem running the job:
+(<type 'exceptions.SystemExit'>, SystemExit(0,), <traceback object at 0x7f58ce4a2680>)
+Traceback (most recent call last):
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 41, in job_runner
+    elif job.language == PYTHON: run_python_job(job)
+  File "/home/hans/wart-detection/spearmint/spearmint/spearmint/runner.py", line 131, in run_python_job
+    result = module.main(job.id, params)
+  File "/home/hans/wart-detection/bay_opt/experiment.py", line 38, in main
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params)
+  File "/home/hans/wart-detection/analyze_training.py", line 22, in cross_validate_with_participants
+    filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"))
+  File "/home/hans/wart-detection/analyze_training.py", line 74, in filenames_for_participants
+    for root, dirnames, filenames in directory:
+  File "/usr/lib/python2.7/os.py", line 296, in walk
+    for x in walk(new_path, topdown, onerror, followlinks):
+  File "/usr/lib/python2.7/os.py", line 286, in walk
+    if isdir(join(top, name)):
+  File "/usr/lib/python2.7/genericpath.py", line 49, in isdir
+    st = os.stat(s)
+  File "/home/hans/wart-detection/spearmint/spearmint/bin/../spearmint/main.py", line 323, in sigint_handler
+    sys.exit(0)
+SystemExit: 0
+None
+----------------------------------------
+Job file reloaded.
+Could not find value in output file.
+Job failed in 0.63 seconds.

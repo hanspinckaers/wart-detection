@@ -1,0 +1,67 @@
+Running in wrapper mode for '20063'
+
+Running python job.
+
+{u'nfeatures': array([10]), u'bow_size': array([100]), u'svm_gamma': array([-4.]), u'edgeThreshold': array([ 12.97749239]), u'svm_C': array([ 3.]), u'sigma': array([ 1.62275851]), u'contrastThreshold': array([ 0.001])}
+----- Fold: 0
+Testing with 951 pos 1473 neg
+Training with 3349 pos 5490 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:176: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  (self.gamma == 'auto')):
+/usr/local/lib/python2.7/dist-packages/sklearn/svm/base.py:179: FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+  elif self.gamma == 'auto':
+--- Overall training model took 142.246607065 ---
+TP: 689 FP: 371 TN 1102 FN: 262
+--- kfold: 0, accuracy: 0.738861386139, youden*coverage: 0.472633587541
+----- Fold: 1
+Testing with 900 pos 1372 neg
+Training with 3400 pos 5591 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 158.834635973 ---
+TP: 599 FP: 218 TN 1154 FN: 301
+--- kfold: 1, accuracy: 0.771566901408, youden*coverage: 0.506663427276
+----- Fold: 2
+Testing with 785 pos 1569 neg
+Training with 3515 pos 5394 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 150.809386969 ---
+TP: 538 FP: 276 TN 1293 FN: 247
+--- kfold: 2, accuracy: 0.77782497876, youden*coverage: 0.509442096674
+----- Fold: 3
+Testing with 889 pos 1174 neg
+Training with 3411 pos 5789 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 162.41280818 ---
+TP: 679 FP: 236 TN 938 FN: 210
+--- kfold: 3, accuracy: 0.783809985458, youden*coverage: 0.562757381051
+----- Fold: 4
+Testing with 775 pos 1375 neg
+Training with 3525 pos 5588 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 142.123239994 ---
+TP: 540 FP: 358 TN 1017 FN: 235
+--- kfold: 4, accuracy: 0.724186046512, youden*coverage: 0.436410557185
+----- Overall youden: 0.497581409945
+----- Overall kfold took 878.167510986 ---
+Got result -0.497581
+
+Job file reloaded.
+Completed successfully in 878.41 seconds. [-0.497581]
+setting job 20063 complete
+set...

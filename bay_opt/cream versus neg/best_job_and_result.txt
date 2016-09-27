@@ -1,0 +1,17 @@
+Best result: -0.674228
+Job-id: 20018
+Parameters: 
+name: "svm_C"
+dbl_val: 2.78474085872
+name: "svm_gamma"
+dbl_val: -1.27693612402
+name: "bow_size"
+int_val: 1500
+name: "nfeatures"
+int_val: 50
+name: "contrastThreshold"
+dbl_val: 0.001
+name: "edgeThreshold"
+dbl_val: 50.0
+name: "sigma"
+dbl_val: 0.886620463438
