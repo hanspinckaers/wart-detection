@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.externals import joblib
 from features import get_features_img
 from nms import nms
-
+import pudb
 
 # make a pyramid of images
 # these functions are inspired by http://www.pyimagesearch.com/2015/03/23/sliding-windows-for-object-detection-with-python-and-opencv/
@@ -63,7 +63,7 @@ for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
         hist = hist.astype(np.float32)
 
         prediction = clf.predict([hist])
-        print prediction
+        score = clf.decision_function([hist])
 
         check = resized.copy()
         cv2.rectangle(check, (x, y), (x + 128, y + 128), (0, 255, 0), 2)
@@ -71,7 +71,8 @@ for (i, resized) in enumerate(pyramid(image, minSize=windowSize)):
         cv2.waitKey(1)
 
         if prediction[0] == 0.:
-            detections.append([x, y, 1., windowSize[0], windowSize[1]])
+            print score[0]
+            detections.append([x, y, score[0], windowSize[0], windowSize[1]])
             n = n + 1
 
     preds = nms(detections)
