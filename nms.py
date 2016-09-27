@@ -1,5 +1,4 @@
 # code originally from https://github.com/bikz05/object-detector/blob/master/object-detector/nms.py
-# we assign equal weight to all bounding boxes
 
 
 def overlapping_area(detection_1, detection_2):
