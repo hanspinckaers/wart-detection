@@ -50,4 +50,4 @@ def save():
 def server_static(filename):
     return static_file(filename, root=os.path.join(dir_path, 'images'))
 
-run(host='localhost', port=8080)
+run(host='0.0.0.0', port=8080)
