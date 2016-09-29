@@ -4,7 +4,7 @@ import fnmatch
 import shutil
 
 names = []
-for root, dirnames, filenames in os.walk("../test_set"):
+for root, dirnames, filenames in os.walk("../train_set"):
     for filename in fnmatch.filter(filenames, '*.png'):
         names.append(filename)
 
@@ -25,8 +25,8 @@ for i in random_indices:
                 break
         if original is not None:
             break
-    shutil.copy(original, '../humanvsmodel/images/')
-    os.rename('../humanvsmodel/images/original.png', '../humanvsmodel/images/' + str(counter) + '.png')
+    shutil.copy(original, '../humanvsmodel/examples/')
+    os.rename('../humanvsmodel/examples/original.png', '../humanvsmodel/examples/' + str(counter) + '.png')
     print original
 
     # shutil.copy(file, '../humanvsmodel/images/')
