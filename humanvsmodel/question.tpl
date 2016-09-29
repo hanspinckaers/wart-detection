@@ -44,9 +44,9 @@ window.ondragstart = function() { return false; }
 <input type="hidden" name="q_idx" value="{{idx}}"></input> <br />
 <input type="hidden" name="wart_x" value="" id="wart_x"></input> <br />
 <input type="hidden" name="wart_y" value="" id="wart_y"></input> <br />
-<input type="radio" name="type" value="wart" id='wart'> <label for="wart">A wart <strong>without</strong> cream</label> <br />
+<input type="radio" name="type" value="wart" id='wart'> <label for="wart">A wart without cream</label> <br />
 <input type="radio" name="type" value="cream" id='cream'> <label for="cream">There is cream applied.</label> <br />
-<input type="radio" name="type" value="none" id='none'> <label for="none">There is no wart or cream. <br />
+<input type="radio" name="type" value="none" id='none'> <label for="none">There is no wart and no cream. <br />
 <br />
 <br />
 <br />
