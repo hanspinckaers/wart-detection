@@ -16,7 +16,7 @@ def start():
     name = str(int(time.time()))
     name += "_" + str(random.randint(100, 999))
     response.set_cookie('name', name)
-    redirect("/question/1")
+    redirect("/questions/1")
 
 
 @route('/thanks')
@@ -24,7 +24,7 @@ def thanks():
     return template('thanks.tpl')
 
 
-@route('/question/<idx>')
+@route('/questions/<idx>')
 def question(idx):
     return template('question', idx=idx)
 
@@ -36,7 +36,11 @@ def save():
     wart_y = request.forms.get('wart_y')
     w_type = request.forms.get('type')
     if w_type is None:
+<<<<<<< HEAD
         redirect("/question/" + str(int(idx)))
+=======
+        redirect("/questions/" + str(int(idx)))
+>>>>>>> 1d3a744989cca1c60fa88849170bc2c6d4f5cf99
     else:
         name = request.cookies.name + ".csv"
 
@@ -47,11 +51,17 @@ def save():
         if int(idx) == 50:
             redirect("/thanks")
         else:
-            redirect("/question/" + str(int(idx) + 1))
+            redirect("/questions/" + str(int(idx) + 1))
 
 
-@route('/img/<filename>')
+@route('/images/<filename>')
 def server_static(filename):
     return static_file(filename, root=os.path.join(dir_path, 'images'))
+
+
+@route('/example/<filename>')
+def server_static_example(filename):
+    return static_file(filename, root=os.path.join(dir_path, 'examples'))
+
 
 run(host='0.0.0.0', port=8080)
