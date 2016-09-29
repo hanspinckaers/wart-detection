@@ -35,7 +35,7 @@ def save():
     wart_x = request.forms.get('wart_x')
     wart_y = request.forms.get('wart_y')
     w_type = request.forms.get('type')
-    if idx is None:
+    if w_type is None:
         redirect("/question/" + str(int(idx)))
     else:
         name = request.cookies.name + ".csv"
