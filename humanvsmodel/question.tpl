@@ -6,11 +6,13 @@ function getCursorPosition(event) {
 	var indication = document.getElementById("rect") 
 	
     var rect = img.getBoundingClientRect();
-	indication.style.top = Math.round(event.clientY - 75);
-	indication.style.left = Math.round(event.clientX - 75);
+	indication.style.top = Math.round(event.clientY - 5);
+	indication.style.left = Math.round(event.clientX - 5);
 	indication.style.display = "block";
     var x = Math.round(event.clientX) - rect.left;
     var y = Math.round(event.clientY) - rect.top;
+	indication.style.top = Math.round(y - 5) + 100;
+	indication.style.left = Math.round(x - 5) + 10;
 
 	var wart_y = document.getElementById("wart_y");
 	wart_y.value = y;
@@ -18,24 +20,36 @@ function getCursorPosition(event) {
 	wart_x.value = x;
 }
 
+function removeRect(event){
+	var wart_y = document.getElementById("wart_y");
+	wart_y.value = "";
+	var wart_x = document.getElementById("wart_x");
+	wart_x.value = "";
+
+	var indication = document.getElementById("rect") 
+	indication.style.display = "none";
+}
+
 window.ondragstart = function() { return false; } 
 
 </script>
 </head>
 <body>
-<h1>Question {{idx}} / 30</h1>
-<p>Please click on the pictured wart (if you see one)</p>
-<img id="image" style="position:absolute; top:100px;" src="/img/{{idx}}.png" onclick="getCursorPosition(event)" />
-<div id="rect" style="border: 2px solid #000; height: 150px; width: 150px; position:absolute; pointer-events:none; display:none;"></div>
-<form action="/save" method="post" style="padding-top: 500px">
+<h1>Question {{idx}} / 50</h1>
+<p>Please click on the center of the pictured wart (if you see one)</p>
+<img id="image" style="position:absolute; top:100px; left:10px;" src="/img/{{idx}}.png" onclick="getCursorPosition(event)" />
+<div id="rect" style="border: 3px solid #000; height: 10px; width: 10px; position:absolute; pointer-events:none; display:none; border-radius:10px;"></div>
+<form action="/save" method="post" style="padding-top: 550px">
+<a href="#!" style="color:blue" onclick="removeRect(event)">Remove selection on picture</a><br/>
 <input type="hidden" name="q_idx" value="{{idx}}"></input> <br />
 <input type="hidden" name="wart_x" value="" id="wart_x"></input> <br />
 <input type="hidden" name="wart_y" value="" id="wart_y"></input> <br />
 <input type="radio" name="type" value="wart" id='wart'> <label for="wart">A wart <strong>without</strong> cream</label> <br />
-<input type="radio" name="type" value="cream" id='cream'> <label for="cream">A wart <strong>with</strong> cream</label> <br />
+<input type="radio" name="type" value="cream" id='cream'> <label for="cream">There is cream applied.</label> <br />
+<input type="radio" name="type" value="none" id='none'> <label for="none">There is no wart or cream. <br />
 <br />
 <br />
 <br />
-<input type="submit" value="Submit"></input>
+<input type="submit" value="Next"></input>
 </form>
 </body>
