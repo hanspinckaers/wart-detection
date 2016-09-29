@@ -135,4 +135,4 @@ for i in random_indices:
 # 
 
 
-# 8, 32, 37? 39? is double
+# 1, 8, 32, 37, 39, 50 is double
