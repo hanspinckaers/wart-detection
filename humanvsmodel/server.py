@@ -35,15 +35,19 @@ def save():
     wart_x = request.forms.get('wart_x')
     wart_y = request.forms.get('wart_y')
     w_type = request.forms.get('type')
-    name = request.cookies.name + ".csv"
-    f = open('results/' + name, 'a+')
-    # f.seek(0, 2)
-    f.write(name + "," + idx + "," + wart_x + "," + wart_y + "," + w_type + "\n")
-    f.close()
-    if int(idx) == 50:
-        redirect("/thanks")
+    if idx is None:
+        redirect("/question/" + str(int(idx)))
     else:
-        redirect("/question/" + str(int(idx) + 1))
+        name = request.cookies.name + ".csv"
+
+        f = open('results/' + name, 'a+')
+        # f.seek(0, 2)
+        f.write(name + "," + idx + "," + wart_x + "," + wart_y + "," + w_type + "\n")
+        f.close()
+        if int(idx) == 50:
+            redirect("/thanks")
+        else:
+            redirect("/question/" + str(int(idx) + 1))
 
 
 @route('/img/<filename>')
