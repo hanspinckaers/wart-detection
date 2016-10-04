@@ -1,6 +1,14 @@
-- Correcting report text
+= TODO
+- Pick random images for humanvsmodel
+- Run Bayesian Optimization on model
+- Train model on all data
+- Run model on all images of training
+- Hard Negative Mining
+- Train model again
+- Run model on test_set
+- Run model on whole images of humanvsmodel experiment
+- Analyse agreement humanvsmodel
+- Write report
+- Make presentation!
 
-- Test set
-- Try Random Forest
-- Inflate training set
-- Human versus Model
+

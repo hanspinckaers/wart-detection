@@ -4,7 +4,7 @@ import numpy as np
 from sklearn.externals import joblib
 from features import get_features_img
 from nms import nms
-import pudb
+
 
 # make a pyramid of images
 # these functions are inspired by http://www.pyimagesearch.com/2015/03/23/sliding-windows-for-object-detection-with-python-and-opencv/
