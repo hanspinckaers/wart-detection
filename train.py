@@ -28,8 +28,13 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
 
     if save:
         # train a whole model
+        train_set_pos = []
+        train_set_neg = []
+        for j, f_ in enumerate(folds):
+            train_set_pos += f_[0]
+            train_set_neg += f_[1]
         print "----- Training a whole model to save -----"
-        model, vocabulary = train_model(filenames_pos, filenames_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
+        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
         np.save("vocabulary_model", vocabulary)
         joblib.dump(model, 'model.pkl')
         return 0.
@@ -310,7 +315,7 @@ if __name__ == '__main__':
     params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
     params = {'nfeatures': 33, 'bow_size': 972, 'svm_gamma': 0.23088591, 'edgeThreshold': 50., 'svm_C': -0.75793766, 'sigma': 0.82779888, 'contrastThreshold': 0.001}
     params = {'nfeatures': 50, 'bow_size': 1500, 'svm_gamma': -1.27693612, 'edgeThreshold': 50., 'svm_C': 2.78474086, 'sigma': 0.88662046, 'contrastThreshold': 0.001}
-    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.10575844, 'edgeThreshold': 88.41417693, u'svm_C': 2.83142991, 'sigma': 0.46683204, 'contrastThreshold': 0.0001}
+    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
     parts.sort()
     dect_params = {
         "nfeatures": params['nfeatures'],
