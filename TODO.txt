@@ -3,12 +3,21 @@
 - Run Bayesian Optimization on model
 - Train model on all data
 - Run model on all images of training
-- Hard Negative Mining
+
+- Hard Negative Mining > wed 05 oct
+- Optimization same SIFT, same BOW size, diff SVM params > thur 06 oct (also run for linear kernel)
+
 - Train model again
+> implement the heat-map/nms approach > mon 10 oct
+>>> deadline model fri 14 oct and implementation on full image
+
 - Run model on test_set
+
+> wait until final model > fri - tue 18 oct
 - Run model on whole images of humanvsmodel experiment
 - Analyse agreement humanvsmodel
-- Write report
-- Make presentation!
 
+- Write report in between
+
+- Make presentation! > wed 19 oct
 
