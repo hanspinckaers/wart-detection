@@ -4,6 +4,7 @@ import fnmatch
 import numpy as np
 import time
 import random
+import sys
 
 # from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
@@ -315,20 +316,35 @@ if __name__ == '__main__':
             if part not in parts:
                 parts.append(part)
 
-    params = {'nfeatures': 60, 'bow_size': 1013, 'svm_gamma': 1.7507582, 'edgeThreshold': 50., 'svm_C': 0.47862167, 'sigma': 2.25901868, 'contrastThreshold': 0.001}
-    params = {'nfeatures': 33, 'bow_size': 972, 'svm_gamma': 0.23088591, 'edgeThreshold': 50., 'svm_C': -0.75793766, 'sigma': 0.82779888, 'contrastThreshold': 0.001}
-    params = {'nfeatures': 50, 'bow_size': 1500, 'svm_gamma': -1.27693612, 'edgeThreshold': 50., 'svm_C': 2.78474086, 'sigma': 0.88662046, 'contrastThreshold': 0.001}
-    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
+    # model without mining
+    # params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
+    print sys.argv
+    nfeatures = float(sys.argv[1])
+    bow_size = float(sys.argv[2])
+    svm_gamma = float(sys.argv[3])
+    edgeThreshold = float(sys.argv[4])
+    svm_C = float(sys.argv[5])
+    sigma = float(sys.argv[6])
+    contrastThreshold = float(sys.argv[7])
+
     parts.sort()
     dect_params = {
-        "nfeatures": params['nfeatures'],
-        "contrastThreshold": params['contrastThreshold'],
-        "edgeThreshold": params['edgeThreshold'],
-        "sigma": params['sigma']
+        "nfeatures": nfeatures,
+        "contrastThreshold": contrastThreshold,
+        "edgeThreshold": edgeThreshold,
+        "sigma": sigma
     }
+    print "svm_C: " + str(svm_C)
+    print "svm_gamma: " + str(svm_gamma)
     model_params = {
-        "C": 10.**params['svm_C'],
-        "gamma": 10.**params['svm_gamma']
+        "C": 10.**svm_C,
+        "gamma": 10.**svm_gamma
     }
 
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=params['bow_size'], model_params=model_params, save=True)
+    print dect_params
+    print model_params
+
+    exit()
+
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False)
+    print "Final score:" + str(kappa)
