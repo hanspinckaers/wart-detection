@@ -26,6 +26,8 @@ results
 *.lprof
 test_set
 train_set
+classified_mining*
+mining_set
 bhtsne
 bh_tsne
 histograms

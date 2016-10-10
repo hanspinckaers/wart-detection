@@ -22,6 +22,9 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
     folds = []
     for p in participants_sliced:
         filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"), cream=cream)
+        filenames_pos_mining, filenames_neg_mining = filenames_for_participants(p, os.walk("classified_mining"), cream=cream)
+        filenames_pos = filenames_pos + filenames_pos_mining
+        filenames_neg = filenames_neg + filenames_neg_mining
         filenames_pos.sort()
         filenames_neg.sort()
         folds.append([filenames_pos, filenames_neg])
