@@ -44,7 +44,8 @@ def main(job_id, params):
     # sigma = int(sys.argv[6])
     # contrastThreshold = int(sys.argv[7])
 
-    output = check_output(["python", "/Users/Hans/opencv3/train.py", str(params['nfeatures'][0]), str(params['bow_size'][0]), str(params['svm_gamma'][0]), str(params['edgeThreshold'][0]), str(params['svm_C'][0]), str(params['sigma'][0]), str(params['contrastThreshold'][0])])  # run c binary (is faster than pure python
+    # output = check_output(["python", "/Users/Hans/opencv3/train.py", str(params['nfeatures'][0]), str(params['bow_size'][0]), str(params['svm_gamma'][0]), str(params['edgeThreshold'][0]), str(params['svm_C'][0]), str(params['sigma'][0]), str(params['contrastThreshold'][0])])  # run c binary (is faster than pure python
+    output = check_output(["python", "/Users/Hans/opencv3/train.py", str(params['svm_gamma'][0]), str(params['svm_C'][0])])  # run c binary (is faster than pure python
     print output
 
     last_score = output.split("Final score:")[-1]
