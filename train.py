@@ -163,7 +163,7 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
         hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
         np.save(cache_name, hists)
     else:
-        hists = np.load(cache_name)
+        hists = np.load(cache_name + ".npy")
 
     print("--- Fit model---")
     if classifier == "svm":
@@ -200,6 +200,7 @@ def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', desc
         print "Generating features for test"
         features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
         descs, _, indices = hist_using_vocabulary(features, vocabulary)
+        np.save(cache_name, descs)
     else:
         descs = np.load(cache_name + ".npy")
 
@@ -343,17 +344,26 @@ if __name__ == '__main__':
                 parts.append(part)
 
     # model without mining
-    # params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
+    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
     print sys.argv
-    nfeatures = float(sys.argv[1])
-    bow_size = float(sys.argv[2])
-    svm_gamma = float(sys.argv[3])
-    edgeThreshold = float(sys.argv[4])
-    svm_C = float(sys.argv[5])
-    sigma = float(sys.argv[6])
-    contrastThreshold = float(sys.argv[7])
 
+    # nfeatures = float(sys.argv[1])
+    # bow_size = float(sys.argv[2])
+    # svm_gamma = float(sys.argv[3])
+    # edgeThreshold = float(sys.argv[4])
+    # svm_C = float(sys.argv[5])
+    # sigma = float(sys.argv[6])
+    # contrastThreshold = float(sys.argv[7])
+
+    nfeatures = params["nfeatures"]
+    bow_size = params["bow_size"]
+    svm_gamma = float(sys.argv[1])
+    edgeThreshold = params["edgeThreshold"]
+    svm_C = float(sys.argv[2])
+    sigma = params["sigma"]
+    contrastThreshold = params["contrastThreshold"]
     parts.sort()
+
     dect_params = {
         "nfeatures": nfeatures,
         "contrastThreshold": contrastThreshold,
