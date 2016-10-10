@@ -15,7 +15,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.externals import joblib
 
 
-def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False, cream=True):
+def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False, cream=True, caching_SIFT=True):
     overall_start_time = time.time()
 
     random.seed(0)
@@ -60,12 +60,18 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         print "Testing with " + str(len(f[0])) + " pos " + str(len(f[1])) + " neg"
         print "Training with " + str(len(train_set_pos)) + " pos " + str(len(train_set_neg)) + " neg"
 
-        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier)
+        cache_name = None
+        if caching_SIFT:
+            cache_name = "train_cache_" + str(i)
+        model, vocabulary = train_model(train_set_pos, train_set_neg, detector_name, descriptor_name, dect_params, n_features, bow_size, k, model_params=model_params, classifier=classifier, cache_name=cache_name)
 
         if model is None:
             return 0.
 
-        predictions, labels, covered = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features)
+        cache_name = None
+        if caching_SIFT:
+            cache_name = "test_cache_" + str(i)
+        predictions, labels, covered = predictions_with_set(f, vocabulary, model, detector_name, descriptor_name, dect_params, n_features, cache_name=cache_name)
 
         # class 1 = negative
         true_neg = np.sum((predictions == 1) & (labels == 1))
@@ -123,34 +129,41 @@ def filenames_for_participants(participants, directory, cream=True):
     return (pos, neg)
 
 
-def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15, model_params=None, classifier="svm"):
+def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, bow_size=1000, k=15, model_params=None, classifier="svm", cache_name=None):
+    caching = False
+    if cache_name is not None:
+        caching = True
+
     # feat = np.load("f_cache.npy")
     # classes = np.load("c_cache.npy")
     # model = fit_model_svm(feat, classes)
 
     # return model, np.array([])
+    if caching and not os.path.exists(cache_name + ".npy"):
+        overall_start_time = time.time()
 
-    overall_start_time = time.time()
+        print("--- Gather features---")
+        pos_feat_p_img, neg_feat_p_img = extract_features([train_pos, train_neg], detector_name, descriptor_name, dect_params, n_features)
+        pos_feat = [item for sublist in pos_feat_p_img for item in sublist]
+        pos_feat = np.asarray(pos_feat)
 
-    print("--- Gather features---")
-    pos_feat_p_img, neg_feat_p_img = extract_features([train_pos, train_neg], detector_name, descriptor_name, dect_params, n_features)
-    pos_feat = [item for sublist in pos_feat_p_img for item in sublist]
-    pos_feat = np.asarray(pos_feat)
+        neg_feat = [item for sublist in neg_feat_p_img for item in sublist]
+        neg_feat = np.asarray(neg_feat)
 
-    neg_feat = [item for sublist in neg_feat_p_img for item in sublist]
-    neg_feat = np.asarray(neg_feat)
+        features = np.concatenate((pos_feat, neg_feat))
+        np.random.seed(42)
+        np.random.shuffle(features)
 
-    features = np.concatenate((pos_feat, neg_feat))
-    np.random.seed(42)
-    np.random.shuffle(features)
+        print("--- Train BOW---")
+        if len(features) == 0:
+            return None, None
+        vocabulary = train_bagofwords(features, bow_size)
 
-    print("--- Train BOW---")
-    if len(features) == 0:
-        return None, None
-    vocabulary = train_bagofwords(features, bow_size)
-
-    print("--- Make hists---")
-    hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
+        print("--- Make hists---")
+        hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
+        np.save(cache_name, hists)
+    else:
+        hists = np.load(cache_name)
 
     print("--- Fit model---")
     if classifier == "svm":
@@ -171,11 +184,24 @@ def validate_model(model, val_pos, val_neg, detector_name='SIFT', descriptor_nam
     np.random.shuffle(features)
 
 
-def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2):
+def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, n_features=10, norm=cv2.NORM_L2, cache_name=None):
     # descs = np.load("des_cache.npy")
     # indices = np.load("indices_cache.npy")
-    features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
-    descs, _, indices = hist_using_vocabulary(features, vocabulary)
+    caching = False
+    if cache_name is not None:
+        caching = True
+
+    # feat = np.load("f_cache.npy")
+    # classes = np.load("c_cache.npy")
+    # model = fit_model_svm(feat, classes)
+
+    # return model, np.array([])
+    if caching and not os.path.exists(cache_name + ".npy"):
+        print "Generating features for test"
+        features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
+        descs, _, indices = hist_using_vocabulary(features, vocabulary)
+    else:
+        descs = np.load(cache_name + ".npy")
 
     # np.save("des_cache", descs)
     # np.save("indices_cache", indices)
@@ -344,7 +370,5 @@ if __name__ == '__main__':
     print dect_params
     print model_params
 
-    exit()
-
-    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False)
+    kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True)
     print "Final score:" + str(kappa)
