@@ -374,7 +374,8 @@ if __name__ == '__main__':
     print "svm_gamma: " + str(svm_gamma)
     model_params = {
         "C": 10.**svm_C,
-        "gamma": 10.**svm_gamma
+        "gamma": 10.**svm_gamma,
+        "class_weight": {1: 10}
     }
 
     print dect_params

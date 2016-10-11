@@ -17,3 +17,12 @@ variable {
 	max:  4
 }
 
+variable {
+	name: "weight"
+	type: FLOAT
+	size: 1
+	min:  -4
+	max:  4
+}
+
+
