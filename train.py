@@ -373,14 +373,11 @@ if __name__ == '__main__':
     }
     print "svm_C: " + str(svm_C)
     print "svm_gamma: " + str(svm_gamma)
-    if 10**weight < 1:
-        weight = {1 / 10**weight: 1}
-    else:
-        weight = {1: 10**weight}
+
     model_params = {
         "C": 10.**svm_C,
         "gamma": 10.**svm_gamma,
-        "class_weight": weight
+        "class_weight": {1: 10**weight}
     }
 
     print dect_params
