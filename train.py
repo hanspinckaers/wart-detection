@@ -5,6 +5,7 @@ import numpy as np
 import time
 import random
 import sys
+import pudb
 
 # from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
@@ -137,11 +138,11 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
     # feat = np.load("f_cache.npy")
     # classes = np.load("c_cache.npy")
     # model = fit_model_svm(feat, classes)
+    overall_start_time = time.time()
 
     # return model, np.array([])
+    vocabulary = None
     if caching and not os.path.exists(cache_name + ".npy"):
-        overall_start_time = time.time()
-
         print("--- Gather features---")
         pos_feat_p_img, neg_feat_p_img = extract_features([train_pos, train_neg], detector_name, descriptor_name, dect_params, n_features)
         pos_feat = [item for sublist in pos_feat_p_img for item in sublist]
@@ -162,8 +163,11 @@ def train_model(train_pos, train_neg, detector_name='SIFT', descriptor_name='SIF
         print("--- Make hists---")
         hists, labels, _ = hist_using_vocabulary([pos_feat_p_img, neg_feat_p_img], vocabulary)
         np.save(cache_name, hists)
+	np.save(cache_name + "_labels", labels)
     else:
         hists = np.load(cache_name + ".npy")
+	labels = np.load(cache_name + "_labels.npy")
+
 
     print("--- Fit model---")
     if classifier == "svm":
@@ -200,9 +204,11 @@ def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', desc
         print "Generating features for test"
         features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
         descs, _, indices = hist_using_vocabulary(features, vocabulary)
+	np.save(cache_name + "_indices", indices)
         np.save(cache_name, descs)
     else:
         descs = np.load(cache_name + ".npy")
+        indices = np.load(cache_name + "_indices.npy")
 
     # np.save("des_cache", descs)
     # np.save("indices_cache", indices)
