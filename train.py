@@ -360,6 +360,7 @@ if __name__ == '__main__':
     svm_gamma = float(sys.argv[1])
     edgeThreshold = params["edgeThreshold"]
     svm_C = float(sys.argv[2])
+    weight = float(sys.argv[3])
     sigma = params["sigma"]
     contrastThreshold = params["contrastThreshold"]
     parts.sort()
@@ -372,10 +373,14 @@ if __name__ == '__main__':
     }
     print "svm_C: " + str(svm_C)
     print "svm_gamma: " + str(svm_gamma)
+    if 10**weight < 1:
+        weight = {1 / 10**weight: 1}
+    else:
+        weight = {1: 10**weight}
     model_params = {
         "C": 10.**svm_C,
         "gamma": 10.**svm_gamma,
-        "class_weight": {1: 10}
+        "class_weight": weight
     }
 
     print dect_params
