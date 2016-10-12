@@ -1,5 +1,6 @@
 # code originally from https://github.com/bikz05/object-detector/blob/master/object-detector/nms.py
-
+import numpy as np
+import pudb
 
 def overlapping_area(detection_1, detection_2):
     '''
@@ -46,6 +47,7 @@ def nms(detections, threshold=.33):
     '''
     if len(detections) == 0:
         return []
+
     # Sort the detections based on confidence score
     detections = sorted(detections, key=lambda detections: detections[2], reverse=True)
     # Unique detections will be appended to this list
@@ -68,6 +70,18 @@ def nms(detections, threshold=.33):
             new_detections.append(detection)
             del detections[index]
     return new_detections
+
+
+def nms_heatmap(detections, size, threshold=.33):
+    heatmap = np.zeros(size)
+    for detection in detections:
+        x = detection[0]
+        y = detection[1]
+        w = detection[3]
+        h = detection[4]
+        heatmap[int(y):int(y + h), int(x):int(x + w)] += -detection[2]
+
+    return detections, heatmap
 
 if __name__ == "__main__":
     # Example of how to use the NMS Module
