@@ -21,8 +21,8 @@ variable {
 	name: "weight"
 	type: FLOAT
 	size: 1
-	min:  -4
-	max:  4
+	min:  -2
+	max:  2
 }
 
 
