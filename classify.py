@@ -3,33 +3,38 @@ import argparse
 import numpy as np
 from sklearn.externals import joblib
 from features import get_features_img
-from nms import nms
+from nms import nms_heatmap
+import time
+# import matplotlib.pyplot as plt
+# import pudb
 
 
 # make a pyramid of images
 # these functions are inspired by http://www.pyimagesearch.com/2015/03/23/sliding-windows-for-object-detection-with-python-and-opencv/
-def pyramid(image, scale=0.75, minSize=(30, 30)):
+def pyramid(image, scale=0.75, min_size=(30, 30)):
     yield image
     while True:
         image = cv2.resize(image, (0, 0), fx=scale, fy=scale)
-        if image.shape[0] >= minSize[0] and image.shape[1] >= minSize[1]:
+        if image.shape[0] >= min_size[0] and image.shape[1] >= min_size[1]:
             yield image
         else:
             break
 
 
-def sliding_window(image, stepSize, windowSize):
-    for y in xrange(0, image.shape[0], stepSize):
-        for x in xrange(0, image.shape[1], stepSize):
-            yield (x, y, image[y:y + windowSize[1], x:x + windowSize[0]])
+def sliding_window(image, step_size, window_size):
+    for y in xrange(0, image.shape[0], step_size):
+        for x in xrange(0, image.shape[1], step_size):
+            yield (x, y, image[y:y + window_size[1], x:x + window_size[0]])
 
 
-def classifyImg(image_filename):
+def classify_img(image_filename, threshold=10, window_size=(128, 128), min_size=(256,256), step_size=32, pyr_scale=0.75):
     image = cv2.imread(image_filename)
-    windowSize = (128, 128)
     clf = joblib.load('model_original_data/model.pkl')
+    voca = np.load("model_original_data/vocabulary_model.npy")
 
-    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.10575844, 'edgeThreshold': 88.41417693, 'svm_C': 2.83142991, 'sigma': 0.46683204, 'contrastThreshold': 0.0001}
+    overall_start_time = time.time()
+
+    params = {'nfeatures': 84, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
 
     dect_params = {
         "nfeatures": params['nfeatures'],
@@ -38,16 +43,13 @@ def classifyImg(image_filename):
         "sigma": params['sigma']
     }
 
-    voca = np.load("model_original_data/vocabulary_model.npy")
-
     detections = []
 
-    for (i, resized) in enumerate(pyramid(image, minSize=(256, 256))):
-        # clone = resized.copy()
+    for (i, resized) in enumerate(pyramid(image, min_size=min_size, scale=pyr_scale)):
         newdetections = []
         n = 0
-        for (x, y, window) in sliding_window(resized, stepSize=32, windowSize=windowSize):
-            if window.shape[0] != windowSize[0] or window.shape[1] != windowSize[1]:
+        for (x, y, window) in sliding_window(resized, step_size=32, window_size=window_size):
+            if window.shape[0] != window_size[0] or window.shape[1] != window_size[1]:
                 continue
 
             descs = get_features_img(window, 'SIFT', 'SIFT', dect_params)
@@ -61,21 +63,25 @@ def classifyImg(image_filename):
             hist /= len(descs)
             hist = hist.astype(np.float32)
 
-            prediction = clf.predict([hist])
+            # prediction = clf.predict([hist])
             score = clf.decision_function([hist])
+            if score < 0:
+                prediction = 0.
+            else:
+                prediction = 1.
 
             # check = resized.copy()
             # cv2.rectangle(check, (x, y), (x + 128, y + 128), (0, 255, 0), 2)
             # cv2.imshow("Window", check)
             # cv2.waitKey(1)
 
-            if prediction[0] == 0.:
+            if prediction == 0.:
                 if i > 0:
-                    detections.append([x / (0.75 ** i), y / (0.75 ** i), score[0], windowSize[0] / (0.75 ** i), windowSize[1] / (0.75 ** i)])
+                    detections.append([x / (0.75 ** i), y / (0.75 ** i), score[0], window_size[0] / (0.75 ** i), window_size[1] / (0.75 ** i)])
                 else:
-                    detections.append([x, y, score[0], windowSize[0], windowSize[1]])
+                    detections.append([x, y, score[0], window_size[0], window_size[1]])
 
-                newdetections.append([x, y, score[0], windowSize[0], windowSize[1]])
+                newdetections.append([x, y, score[0], window_size[0], window_size[1]])
                 n = n + 1
 
         # for pred in newdetections:
@@ -84,19 +90,32 @@ def classifyImg(image_filename):
         # cv2.imshow("Window res " + str(i), clone)
         print n
 
-    clone = image.copy()
-    preds = nms(detections)
+    # clone = image.copy()
+    preds, heatmap = nms_heatmap(detections, image.shape[:2])
 
-    for pred in preds:
-        cv2.rectangle(clone, (int(pred[0]), int(pred[1])), (int(pred[0]) + int(pred[3]), int(pred[1]) + int(pred[4])), (0, 255, 0), 2)
+    max_val = np.max(heatmap)
+    print "Max_val: " + str(max_val)
 
-    cv2.imshow("Result", clone)
+    # for pred in preds:
+    #     cv2.rectangle(clone, (int(pred[0]), int(pred[1])), (int(pred[0]) + int(pred[3]), int(pred[1]) + int(pred[4])), (0, 255, 0), 2)
 
-    cv2.waitKey(0)
+    # cv2.imshow("Result", shifted)
+    # plt.imshow(heatmap, cmap='hot', interpolation='nearest')
+    # plt.show()
+    # cv2.waitKey(0)
+    print("--- Overall classification took %.2f seconds -" % (time.time() - overall_start_time))
 
-    return preds
+    if max_val > threshold:
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--image", required=True, help="Path to image")
     args = vars(ap.parse_args())
+    compliant = classify_img(args['image'])
+    if compliant:
+        print "Image classified as compliant"
+    else:
+        print "Image classified as not compliant"
