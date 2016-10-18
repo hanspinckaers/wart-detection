@@ -11,7 +11,7 @@ ERASE_LINE = '\x1b[2K'
 detectors = None
 
 
-def get_features_array(images, detector, descriptor, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features_array(images, detector, descriptor, dect_params=None, sensitivity=2, max_features=500, dense=False, gray_detector=True, gray_descriptor=True, testing=False):
     """
     This function runs detector.detect() on all images and returns all features in a numpy array
 
@@ -52,11 +52,8 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
             if i > 0:
                 print CURSOR_UP_ONE + ERASE_LINE + CURSOR_UP_ONE
             print "--- Extracting features " + str(filename) + " ---"
-        desc = get_features(filename, detector, descriptor, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
+        desc = get_features(filename, detector, descriptor, dect_params, sensitivity, max_features, dense, gray_detector, gray_descriptor, testing)
         len_features = len(desc)
-
-        if featureVectors is None:
-            featureVectors = np.zeros((len(images) * 500, desc.shape[1]), dtype=np.float32)  # max 500 features per image
 
         featureVectors.append(desc)
 
@@ -70,19 +67,27 @@ def get_features_array(images, detector, descriptor, dect_params=None, sensitivi
     return featureVectors
 
 
-def get_features(filename, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features(filename, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, dense=False, gray_detector=True, gray_descriptor=True, testing=False):
     image = cv2.imread(filename)
-    return get_features_img(image, detector, descriptor_name, dect_params, sensitivity, max_features, gray_detector, gray_descriptor, testing)
+    return get_features_img(image, detector, descriptor_name, dect_params, sensitivity, max_features, dense, gray_detector, gray_descriptor, testing)
 
 
-def get_features_img(image, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, gray_detector=True, gray_descriptor=True, testing=False):
+def get_features_img(image, detector, descriptor_name, dect_params=None, sensitivity=2, max_features=500, dense=False, gray_detector=True, gray_descriptor=True, testing=False):
     if gray_detector or gray_descriptor:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    if gray_detector:
-        dect, kps = kps_with_detector(gray, detector, sensitivity, max_features, dect_params)
+    if dense:
+        step_size = 5
+        kps = [cv2.KeyPoint(x, y, step_size) for y in range(0, gray.shape[0], step_size) for x in range(0, gray.shape[1], step_size)]
+        step_size = 10
+        kps += [cv2.KeyPoint(x, y, step_size) for y in range(0, gray.shape[0], step_size) for x in range(0, gray.shape[1], step_size)]
+        dect = cv2.xfeatures2d.SIFT_create(**dect_params)
     else:
-        dect, kps = kps_with_detector(image, detector, sensitivity, max_features, dect_params)
+        if gray_detector:
+            if dense:
+                dect, kps = kps_with_detector(gray, detector, sensitivity, max_features, dect_params)
+            else:
+                dect, kps = kps_with_detector(image, detector, sensitivity, max_features, dect_params)
 
     if descriptor_name == detector:
         if gray_descriptor:

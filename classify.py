@@ -5,7 +5,7 @@ from sklearn.externals import joblib
 from features import get_features_img
 from nms import nms_heatmap
 import time
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # import pudb
 
 
@@ -29,8 +29,8 @@ def sliding_window(image, step_size, window_size):
 
 def classify_img(image_filename, threshold=10, window_size=(128, 128), min_size=(256,256), step_size=32, pyr_scale=0.75):
     image = cv2.imread(image_filename)
-    clf = joblib.load('model_original_data/model.pkl')
-    voca = np.load("model_original_data/vocabulary_model.npy")
+    clf = joblib.load('final_model/model.pkl')
+    voca = np.load("final_model/vocabulary_model.npy")
 
     overall_start_time = time.time()
 
@@ -106,16 +106,26 @@ def classify_img(image_filename, threshold=10, window_size=(128, 128), min_size=
     print("--- Overall classification took %.2f seconds -" % (time.time() - overall_start_time))
 
     if max_val > threshold:
-        return True
+        return True, max_val
     else:
-        return False
+        return False, max_val
 
 if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--image", required=True, help="Path to image")
+    ap.add_argument("-d", "--id", required=True, help="image id")
+    
     args = vars(ap.parse_args())
-    compliant = classify_img(args['image'])
+    compliant, max_val = classify_img(args['image'])
     if compliant:
         print "Image classified as compliant"
     else:
         print "Image classified as not compliant"
+
+    target = open("img_" + args['id'] + ".txt", 'w')
+    target.write(str(max_val) + "\n")
+    if compliant:
+        target.write("compliant")
+    else:
+        target.write("non-compliant")
+    target.close()
