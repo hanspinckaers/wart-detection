@@ -60,6 +60,9 @@ def classify_img(image_filename, threshold=10, window_size=(128, 128), min_size=
                 match = np.sum(np.square(np.abs(voca - desc)),1).argmin()
                 hist[match] += 1
 
+            if len(descs) == 0:
+                return False, 0.
+
             hist /= len(descs)
             hist = hist.astype(np.float32)
 
