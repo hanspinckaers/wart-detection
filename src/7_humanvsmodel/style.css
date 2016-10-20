@@ -1,0 +1,68 @@
+ul {
+	list-style: none;
+	width: 396px;
+	height: 132px;
+	background-color: rgb(244, 181, 106);
+	margin: 0;
+	padding: 0;
+}
+
+ul:first-child {
+	margin-bottom: 5px;
+}
+
+hr {
+	border: 0;
+	border-top: 1px solid #d5d5d5;
+	width: 400px;
+	margin: 0;
+	margin-bottom: 5px;
+}
+
+ul li {
+
+	float: left;
+	padding: 14px 5px 14px 5px;
+	font: 10px "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+	width: 30px;
+	border: 2px solid #ffffff;
+	text-align: center;
+}
+.fill {
+	background-color: white;
+	height: 12px;
+}
+
+ul li.perc_23 {
+	background-color: rgba(121, 201, 247,0.77);
+}
+ul li.perc_77 {
+	background-color: rgba(121, 201, 247,0.23);
+}
+ul li.perc_31 {
+	background-color: rgba(121, 201, 247,0.69);
+}
+ul li.perc_8 {
+	background-color: rgba(121, 201, 247,0.92);
+}
+ul li.perc_15 {
+	background-color: rgba(121, 201, 247,0.85);
+}
+ul li.perc_0 {
+	background-color: rgb(121, 201, 247);
+	font-weight: bold;
+}
+ul li.perc_100 {
+	background-color: rgba(249, 117, 117,0);
+	font-weight: bold;
+}
+ul li.perc_62 {
+	background-color: rgba(121, 201, 247,0.38);
+}
+ul li.perc_85 {
+	background-color: rgba(121, 201, 247,0.15);
+}
+ul li.perc_92 {
+	background-color: rgba(121, 201, 247,0.08);
+}
+
