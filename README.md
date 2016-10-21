@@ -3,9 +3,7 @@
 - **Python 2.7.11**
 - **OpenCV 3.1 + contrib**:
 	NB contrib module is needed for xfeatures2d (SIFT/SURF):
-	- for OS X use: <http://www.pyimagesearch.com/2015/06/15/install-opencv-3-0-and-python-2-7-on-osx/>
-	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
- 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
+
 	- Ubuntu:
 ```
 1. sudo apt-get install build-essential cmake git pkg-config`
@@ -45,6 +43,10 @@
 24. sudo ldconfig
 ```
 	- now try with: `python` -> `import cv2`
+	
+	- for OS X use: <http://www.pyimagesearch.com/2015/06/15/install-opencv-3-0-and-python-2-7-on-osx/>
+	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
+ 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 
 ####Install dependencies:
 ```pip install numpy, scipy, scikit-learn, joblib```
@@ -57,26 +59,32 @@
 
 ####Build from source:
 - **kmajority.c**: 
-```cd src/2\_compare\_detectors/
+```
+cd ~/wart-detection/src/2_compare_detectors/
 clang -Ofast -o kmajority kmajority.c
 or:
-gcc -Ofast -o kmajority kmajority.c```
+gcc -Ofast -o kmajority kmajority.c
+```
 
 - **bh_tsne (Barnes-Hut TSNE)** this should work: 
-`` cd src/2\_compare\_detectors
+```
+cd ~/wart-detection/src/2_compare_detectors
 git clone https://github.com/lvdmaaten/bhtsne.git`
 cd bhtsne
 git checkout 843c0909f293bb4b4c1584e7030b3623b5cec224
 g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
+```
 - copy bh_tsne binary to 2\_compare\_detectors
 - copy bhtsne.py to 2\_compare\_detectors
 	
 - **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization
-	1. `cd ~`
-	2. `apt-get install python-protobuf`
-	3. `git clone https://github.com/JasperSnoek/spearmint.git`
-	4. `cd spearmint/spearmint`
-	5. `bin/make_protobufs`
+```
+cd ~
+apt-get install python-protobuf
+git clone https://github.com/JasperSnoek/spearmint.git
+cd spearmint/spearmint
+bin/make_protobufs
+```
 
 ### Pipeline:
 
