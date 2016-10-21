@@ -8,38 +8,41 @@
  	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 	- Ubuntu:
 ```
-sudo apt-get install build-essential cmake git pkg-config`
-sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev`
-sudo apt-get install libgtk2.0-dev`
-sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev`
-sudo apt-get install libatlas-base-dev gfortran`
+1. sudo apt-get install build-essential cmake git pkg-config`
+2. sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev`
+3. sudo apt-get install libgtk2.0-dev`
+4. sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev`
+5. sudo apt-get install libatlas-base-dev gfortran`
+
 # install pip (could also be there already): 
-wget https://bootstrap.pypa.io/get-pip.py
-sudo python get-pip.py
+6. wget https://bootstrap.pypa.io/get-pip.py
+7. sudo python get-pip.py
+
 # install python (could be there already)
-sudo apt-get install python2.7-dev
-pip install numpy
-cd ~
+8. sudo apt-get install python2.7-dev
+9. pip install numpy
+10. cd ~
+
 # install opencv3
-git clone https://github.com/Itseez/opencv.git
-cd opencv
-git checkout 3.1.0
-cd ~
-git clone https://github.com/Itseez/opencv\_contrib.git
-cd opencv\_contrib
-git checkout 3.1.0
-cd ~/opencv
-mkdir build
-cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
+11. git clone https://github.com/Itseez/opencv.git
+12. cd opencv
+13. git checkout 3.1.0
+14. cd ~
+15. git clone https://github.com/Itseez/opencv\_contrib.git
+16. cd opencv\_contrib
+17. git checkout 3.1.0
+18. cd ~/opencv
+19. mkdir build
+20. cd build
+21. cmake -D CMAKE_BUILD_TYPE=RELEASE \
 		-D CMAKE_INSTALL_PREFIX=/usr/local \
 		-D INSTALL_C_EXAMPLES=ON \
 		-D INSTALL_PYTHON_EXAMPLES=ON \
 		-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
 		-D BUILD_EXAMPLES=OFF ..
-make -j1
-sudo make install
-sudo ldconfig
+22. make -j1
+23. sudo make install
+24. sudo ldconfig
 ```
 	- now try with: `python` -> `import cv2`
 
@@ -54,16 +57,20 @@ sudo ldconfig
 
 ####Build from source:
 - **kmajority.c**: 
-	1. `cd src/2\_compare\_detectors/`
-	2. ```clang -Ofast -o kmajority kmajority.c``` or ```gcc -Ofast -o kmajority kmajority.c```
+```cd src/2\_compare\_detectors/
+clang -Ofast -o kmajority kmajority.c
+or:
+gcc -Ofast -o kmajority kmajority.c```
+
 - **bh_tsne (Barnes-Hut TSNE)** this should work: 
-	1. `cd src/2\_compare\_detectors/`
-	2. `git clone https://github.com/lvdmaaten/bhtsne.git`
-	3. `cd bhtsne`
-	4. `git checkout 843c0909f293bb4b4c1584e7030b3623b5cec224`
-	5. `g++ sptree.cpp tsne.cpp -o bh\_tsne -O2`
-	6. copy bh_tsne binary to 2\_compare\_detectors
-	7. copy bhtsne.py to 2\_compare\_detectors
+`` cd src/2\_compare\_detectors
+git clone https://github.com/lvdmaaten/bhtsne.git`
+cd bhtsne
+git checkout 843c0909f293bb4b4c1584e7030b3623b5cec224
+g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
+- copy bh_tsne binary to 2\_compare\_detectors
+- copy bhtsne.py to 2\_compare\_detectors
+	
 - **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization
 	1. `cd ~`
 	2. `apt-get install python-protobuf`
