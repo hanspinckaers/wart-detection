@@ -1,9 +1,9 @@
 		
 ### Python scripts:
 
-- *test/_detectors*: this starts a script that will make tsne for all the different detectors and descriptors mentioned in the file
+- *test\_detectors*: this starts a script that will make tsne for all the different detectors and descriptors mentioned in the file
 
-- *tsne/_scatter.py*: this script has a few hardcoded references to folders at the end of the file, it is easier to use this script by using test\_detectors.py
+- *tsne\_scatter.py*: this script has a few hardcoded references to folders at the end of the file, it is easier to use this script by using test\_detectors.py
 	- 1st arg: detector\_name
     - 2nd arg: descriptor\_name
     - 3rd arg: n\_features

@@ -21,7 +21,8 @@ pymeanshift
 opencv
 opencv_contrib
 scikit-learn
-results
+results/naive_algorithm_per_img/*
+results/model_results_all_imgs/*
 *.npy
 *.lprof
 test_set

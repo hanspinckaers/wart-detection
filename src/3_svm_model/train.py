@@ -6,6 +6,7 @@ import time
 import random
 import sys
 import pudb
+sys.path.append('../2_compare_detectors/')
 
 # from pudb import set_trace
 from kmajority import kmajority, compute_hamming_hist
@@ -17,14 +18,67 @@ from sklearn.externals import joblib
 
 
 def cross_validate_with_participants(kfold, participants, detector_name='SIFT', descriptor_name='SIFT', dect_params=None, model_params=None, n_features=10, bow_size=1000, k=15, classifier="svm", save=False, cream=True, caching_SIFT=True, dense=False):
+    """
+    This function trains and tests a model and outputs a score based on exponents on sensitivity and specificity.
+
+    Parameters
+    ---------
+    kfold: integer
+        Number of folds in kfold validation
+
+    participants: array
+        Participants ids in an array
+
+    detector_name: string
+        Name of the detector to use
+
+    descriptor_name: string
+        Name of the descriptor to use
+
+    dect_params: dict
+        If supported these params will be applied on the detector create function
+
+    model_params:
+        Parameters to give when creating a classifier of scipy (e.g. the svm parameters)
+
+    n_features: integer
+        How much features to extract per img
+
+    bow_size: integer
+        How much words in the bag of words
+
+    k: integer
+        When using k-nearest neighbors, how many to look at
+
+    classifier: string
+        Which classifier to use (can be 'svm', 'forest' or 'knearest')
+
+    save: boolean
+        If yes, model will train on *all* data, not doing k-fold validation and export model to files
+
+    cream: boolean
+        If yes we are going to train a model cream versus no-cream, if no we are training wart versus no-wart.
+
+    caching_SIFT: boolean
+        Should be cache the sift features so that subsequent runs run faster
+
+    dense: boolean
+        Should we use a grid for sift features
+
+
+    Returns
+    ------
+    score: double
+        Score if the current model by averaging k-fold scores
+    """
     overall_start_time = time.time()
 
     random.seed(0)
     participants_sliced = divide_in(participants, kfold)
     folds = []
     for p in participants_sliced:
-        filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("train_set"), cream=cream)
-        filenames_pos_mining, filenames_neg_mining = filenames_for_participants(p, os.walk("classified_mining"), cream=cream)
+        filenames_pos, filenames_neg = filenames_for_participants(p, os.walk("../../images/train_set"), cream=cream)
+        filenames_pos_mining, filenames_neg_mining = filenames_for_participants(p, os.walk("../../images/classified_mining"), cream=cream)
         filenames_pos = filenames_pos + filenames_pos_mining
         filenames_neg = filenames_neg + filenames_neg_mining
         filenames_pos.sort()
@@ -181,7 +235,7 @@ def train_model(pos_feat_p_img, neg_feat_p_img, detector_name='SIFT', descriptor
 
         print("--- Train BOW---")
         if len(features) == 0:
-            return None, None
+             return None, None
         vocabulary = train_bagofwords(features, bow_size)
         # np.save("vocabulary_test", vocabulary)
 
@@ -368,32 +422,23 @@ def fit_model_forest(feat, classes, model_params={}):
 
 if __name__ == '__main__':
     parts = []
-    for root, dirnames, filenames in os.walk("train_set"):
+    for root, dirnames, filenames in os.walk("../../images/train_set"):
         for filename in fnmatch.filter(filenames, '*.png'):
             part = filename.split(" - ")[0]
             if part not in parts:
                 parts.append(part)
 
-    # model without mining
-    params = {'nfeatures': 5000, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
+    params = {'nfeatures': 100, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
     print sys.argv
-
-    # nfeatures = float(sys.argv[1])
-    # bow_size = float(sys.argv[2])
-    # svm_gamma = float(sys.argv[3])
-    # edgeThreshold = float(sys.argv[4])
-    # svm_C = float(sys.argv[5])
-    # sigma = float(sys.argv[6])
-    # contrastThreshold = float(sys.argv[7])
 
     nfeatures = params["nfeatures"]
     bow_size = params["bow_size"]
     svm_gamma = float(sys.argv[1])
     edgeThreshold = params["edgeThreshold"]
     svm_C = float(sys.argv[2])
-    # weight = float(sys.argv[3])
     sigma = params["sigma"]
     contrastThreshold = params["contrastThreshold"]
+    # weight = float(sys.argv[3])
     parts.sort()
 
     dect_params = {
@@ -411,6 +456,7 @@ if __name__ == '__main__':
         # "class_weight": {1: 10**weight}
     }
 
+    # this is for when you want to try random forest
     # model_params = {
     #     "verbose": 1,
     #     "n_estimators": 1500,
@@ -421,5 +467,5 @@ if __name__ == '__main__':
     print model_params
 
     # kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True)
-    kappa = cross_validate_with_participants(5, parts, classifier="svm", dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=False, dense=True)
+    kappa = cross_validate_with_participants(5, parts, classifier="svm", dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=False, dense=False)
     print "Final score:" + str(kappa)

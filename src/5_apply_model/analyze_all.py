@@ -5,10 +5,10 @@ import os
 import fnmatch
 import json
 
-with open('results/model_results_all_imgs/filenames.json') as data_file:
+with open('../../results/model_results_all_imgs/filenames.json') as data_file:
     data = json.load(data_file)
 
-with open('results/model_results_all_imgs/compliance_data_1423_raw.json') as data_file:
+with open('../../results/model_results_all_imgs/compliance_data_1423_raw.json') as data_file:
     compliance_data = json.load(data_file)
 
 

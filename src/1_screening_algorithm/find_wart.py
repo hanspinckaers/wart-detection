@@ -33,8 +33,8 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
     img = cv2.imread(img_path)
 
     # load cache of mask if available
-    if os.path.isfile("cache/" + img_path + "/mask.png"):
-        mask = cv2.imread("cache/" + img_path + "/mask.png")
+    if os.path.isfile("cache/" + img_path.replace("../","/") + "/mask.png"):
+        mask = cv2.imread("cache/" + img_path.replace("../","/") + "/mask.png")
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
 
         print(img_path + " %.2f" % (time.time() - st) + "s" + " - 2, 3 ,4. loading cached mask")
@@ -76,14 +76,14 @@ def find_warts(img_path, output, kernel_size=(8, 8), laplacian=(8, 8), morph_ite
         mask[skin_clusters[0] == 0] = 0
         mask[skin_clusters[0] == 1] = 255
 
-        if not os.path.exists("cache/" + img_path):
-            os.makedirs("cache/" + img_path)
+        if not os.path.exists("cache/" + img_path.replace("../","/")):
+            os.makedirs("cache/" + img_path.replace("../","/"))
 
         # fill holes in mask
         _, contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cv2.drawContours(mask, contours, -1, 255, thickness=cv2.FILLED)
 
-        cv2.imwrite("cache/" + img_path + "/mask.png", mask)
+        cv2.imwrite("cache/" + img_path.replace("../","/") + "/mask.png", mask)
 
         if output:
             cv2.imshow(img_path + " skin ", mask)

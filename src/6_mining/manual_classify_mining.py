@@ -65,14 +65,14 @@ def classifyImg(original, dirname, imgname):
 
 
 names = []
-for root, dirnames, filenames in os.walk("./train_set"):
+for root, dirnames, filenames in os.walk("../../images/train_set"):
     for filename in fnmatch.filter(filenames, '*.png'):
         names.append(filename)
 
 np.random.seed(0)
 
 all_filenames = []
-for root, dirnames, filenames in os.walk("./run"):
+for root, dirnames, filenames in os.walk("../../results/naive_algorithm_per_img"):
     for filename in fnmatch.filter(filenames, '*.png'):
         if root not in all_filenames:
             all_filenames.append(root)
@@ -80,42 +80,13 @@ for root, dirnames, filenames in os.walk("./run"):
 original_names = []
 
 images = []
-for root, dirnames, filenames in os.walk("./mining_set"):
+for root, dirnames, filenames in os.walk("../../images/mining_set"):
     for filename in fnmatch.filter(filenames, '*.png'):
         images.append(filename)
-
-classified = []
-classified_root = []
-dupe_roots = []
-for root, dirnames, filenames in os.walk("./classified_mining"):
-    for filename in fnmatch.filter(filenames, '*.png'):
-        # if filename in classified:
-        #     index = classified.index(filename)
-        #     dupe_roots.append([classified[index], classified_root[index], filename, root])
-        #     if 'dubious' in root:
-        #         os.remove(classified_root[index] + "/" + filename)
-        #     elif 'dubious' in classified_root[index]:
-        #         os.remove(root + "/" + filename)
-        #     else:
-        #         shutil.copyfile(classified_root[index] + "/" + filename, "./classified_mining/dubious/" + filename)
-        #         os.remove(classified_root[index] + "/" + filename)
-        #         os.remove(root + "/" + filename)
-
-        #     print [classified[index], classified_root[index], filename, root]
-        classified.append(filename)
-        classified_root.append(root)
 
 i = 0
 while i < len(images):
     imgfilename = images[i]
-
-    if imgfilename in classified:
-        i+=1
-        continue
-    else:
-        print "removed! " + str(imgfilename)
-        i+=1
-        continue
 
     original_names = []
     foldername = imgfilename.split('moi')[0][:-2].strip() + ".png"
