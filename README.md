@@ -6,41 +6,41 @@
 	- for OS X use: <http://www.pyimagesearch.com/2015/06/15/install-opencv-3-0-and-python-2-7-on-osx/>
 	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
  	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
-	- Ubuntu
-	- ```
-	sudo apt-get install build-essential cmake git pkg-config`
-	sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev`
-	sudo apt-get install libgtk2.0-dev`
-	sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev`
-	sudo apt-get install libatlas-base-dev gfortran`
-	# install pip (could also be there already): 
-	wget https://bootstrap.pypa.io/get-pip.py
-	sudo python get-pip.py
-	# install python (could be there already)
-	sudo apt-get install python2.7-dev
-	pip install numpy
-	cd ~
-	# install opencv3
-	git clone https://github.com/Itseez/opencv.git
-	cd opencv
-	git checkout 3.1.0
-	cd ~
-	git clone https://github.com/Itseez/opencv\_contrib.git
-	cd opencv\_contrib
-	git checkout 3.1.0
-	cd ~/opencv
-	mkdir build
-	cd build
-	cmake -D CMAKE_BUILD_TYPE=RELEASE \
-			-D CMAKE_INSTALL_PREFIX=/usr/local \
-			-D INSTALL_C_EXAMPLES=ON \
-			-D INSTALL_PYTHON_EXAMPLES=ON \
-			-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
-			-D BUILD_EXAMPLES=OFF ..
-	make -j1
-	sudo make install
-	sudo ldconfig
-	```
+	- Ubuntu:
+```
+sudo apt-get install build-essential cmake git pkg-config`
+sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev`
+sudo apt-get install libgtk2.0-dev`
+sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev`
+sudo apt-get install libatlas-base-dev gfortran`
+# install pip (could also be there already): 
+wget https://bootstrap.pypa.io/get-pip.py
+sudo python get-pip.py
+# install python (could be there already)
+sudo apt-get install python2.7-dev
+pip install numpy
+cd ~
+# install opencv3
+git clone https://github.com/Itseez/opencv.git
+cd opencv
+git checkout 3.1.0
+cd ~
+git clone https://github.com/Itseez/opencv\_contrib.git
+cd opencv\_contrib
+git checkout 3.1.0
+cd ~/opencv
+mkdir build
+cd build
+cmake -D CMAKE_BUILD_TYPE=RELEASE \
+		-D CMAKE_INSTALL_PREFIX=/usr/local \
+		-D INSTALL_C_EXAMPLES=ON \
+		-D INSTALL_PYTHON_EXAMPLES=ON \
+		-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
+		-D BUILD_EXAMPLES=OFF ..
+make -j1
+sudo make install
+sudo ldconfig
+```
 	- now try with: `python` -> `import cv2`
 
 ####Install dependencies:
