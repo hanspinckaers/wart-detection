@@ -11,10 +11,10 @@
 	- Ubuntu:
 ```
 1. sudo apt-get install build-essential cmake git pkg-config
-2. sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev
+2. sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev (could be libtiff5-dev)
 3. sudo apt-get install libgtk2.0-dev
 4. sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
-5. sudo apt-get install libatlas-base-dev gfortran
+5. sudo apt-get install libatlas-base-dev gfortran (gfortran not needed if install fails)
 
 # install pip (could also be there already): 
 6. wget https://bootstrap.pypa.io/get-pip.py
@@ -52,7 +52,7 @@
 
 It works when there are not errors.
 ```
-- **OpenCV 3.1 + contrib** original install guides:
+- **OpenCV 3.1 + contrib** original install guides (ignore if above worked):
 
 	- for OS X use: <http://www.pyimagesearch.com/2015/06/15/install-opencv-3-0-and-python-2-7-on-osx/>
 	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
