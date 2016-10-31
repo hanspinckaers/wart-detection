@@ -87,7 +87,7 @@ g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
 - copy bh_tsne binary to 2\_compare\_detectors
 - copy bhtsne.py to 2\_compare\_detectors
 	
-- **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization
+- **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization with:
 ```
 cd ~
 sudo pip install protobuf
