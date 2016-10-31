@@ -22,7 +22,7 @@
 
 # install python (could be there already)
 8. sudo apt-get install python2.7-dev
-9. pip install numpy
+9. sudo pip install numpy
 10. cd ~
 
 # install opencv3
@@ -59,7 +59,7 @@ It works when there are not errors.
 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 
 ####Install dependencies:
-```pip install numpy, scipy, scikit-learn, joblib```
+```sudo pip install numpy, scipy, scikit-learn, joblib```
 
 ####Python dependencies:
 - **Scikit-learn** 0.17.1 (I have it built from source 0.18.dev0, but I don't use dev features anymore, so just the latest stable version should work. However, if you're seeing sklearn related errors, try to install it from source.)
@@ -90,7 +90,7 @@ g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
 - **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization
 ```
 cd ~
-apt-get install python-protobuf
+sudo pip install protobuf
 git clone https://github.com/JasperSnoek/spearmint.git
 cd spearmint/spearmint
 bin/make_protobufs
