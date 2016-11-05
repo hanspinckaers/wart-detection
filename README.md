@@ -11,10 +11,10 @@
 	- Ubuntu:
 ```
 1. sudo apt-get install build-essential cmake git pkg-config
-2. sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev
+2. sudo apt-get install libjpeg8-dev libtiff4-dev libjasper-dev libpng12-dev (could be libtiff5-dev)
 3. sudo apt-get install libgtk2.0-dev
 4. sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
-5. sudo apt-get install libatlas-base-dev gfortran
+5. sudo apt-get install libatlas-base-dev gfortran (gfortran not needed if install fails)
 
 # install pip (could also be there already): 
 6. wget https://bootstrap.pypa.io/get-pip.py
@@ -22,7 +22,7 @@
 
 # install python (could be there already)
 8. sudo apt-get install python2.7-dev
-9. pip install numpy
+9. sudo pip install numpy
 10. cd ~
 
 # install opencv3
@@ -52,14 +52,14 @@
 
 It works when there are not errors.
 ```
-- **OpenCV 3.1 + contrib** original install guides:
+- **OpenCV 3.1 + contrib** original install guides (ignore if above worked):
 
 	- for OS X use: <http://www.pyimagesearch.com/2015/06/15/install-opencv-3-0-and-python-2-7-on-osx/>
 	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 
 ####Install dependencies:
-```pip install numpy, scipy, scikit-learn, joblib```
+```sudo pip install numpy, scipy, scikit-learn, joblib```
 
 ####Python dependencies:
 - **Scikit-learn** 0.17.1 (I have it built from source 0.18.dev0, but I don't use dev features anymore, so just the latest stable version should work. However, if you're seeing sklearn related errors, try to install it from source.)
@@ -87,10 +87,10 @@ g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
 - copy bh_tsne binary to 2\_compare\_detectors
 - copy bhtsne.py to 2\_compare\_detectors
 	
-- **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization
+- **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization with:
 ```
 cd ~
-apt-get install python-protobuf
+sudo pip install protobuf
 git clone https://github.com/JasperSnoek/spearmint.git
 cd spearmint/spearmint
 bin/make_protobufs
