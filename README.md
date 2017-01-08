@@ -50,7 +50,7 @@
 25. python
 26. python>> import cv2
 
-It works when there are not errors.
+It works when there are no errors.
 ```
 - **OpenCV 3.1 + contrib** original install guides (ignore if above worked):
 
