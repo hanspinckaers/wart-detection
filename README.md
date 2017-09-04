@@ -58,16 +58,16 @@ It works when there are no errors.
 	- for Ubuntu: <http://www.pyimagesearch.com/2015/06/22/install-opencv-3-0-and-python-2-7-on-ubuntu/>
 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 
-####Install dependencies:
+### Install dependencies:
 ```sudo pip install numpy, scipy, scikit-learn, joblib```
 
-####Python dependencies:
+### Python dependencies:
 - **Scikit-learn** 0.17.1 (I have it built from source 0.18.dev0, but I don't use dev features anymore, so just the latest stable version should work. However, if you're seeing sklearn related errors, try to install it from source.)
 - **SciPy** 0.17.1
 - **Numpy** 1.11.0
 - **Joblib**
 
-####Build from source:
+### Build from source:
 - **kmajority.c**: 
 ```
 cd ~/wart-detection/src/2_compare_detectors/
@@ -115,7 +115,7 @@ python classify.py -i ../../images/test_images/wart-on-skin.png -d temp
 7. src/6_mining: classifying the false positive regions in the training images
 8. src/7_humanvsmodel: human versus model experiment
 
-## Image analysis idea:
+## Overall:
 1. Gather features (feature detector)
 2. Describe features (feature descriptor)
 3. Train bag of words
