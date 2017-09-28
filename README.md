@@ -42,6 +42,7 @@
 		-D INSTALL_PYTHON_EXAMPLES=ON \
 		-D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib/modules \
 		-D BUILD_EXAMPLES=OFF ..
+For Ubuntu 17 add -D ENABLE_PRECOMPILED_HEADERS=OFF
 22. make -j1
 23. sudo make install
 24. sudo ldconfig
