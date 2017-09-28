@@ -15,6 +15,7 @@
 3. sudo apt-get install libgtk2.0-dev
 4. sudo apt-get install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev
 5. sudo apt-get install libatlas-base-dev gfortran (gfortran not needed if install fails)
+6. sudo apt-get install python-tk
 
 # install pip (could also be there already): 
 6. wget https://bootstrap.pypa.io/get-pip.py
@@ -60,7 +61,7 @@ It works when there are no errors.
 	- for Windows use: <http://www.lfd.uci.edu/~gohlke/pythonlibs/#opencv> and download ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win32.whl``` or ```opencv_python-3.1.0+contrib_opencl-cp35-cp35m-win_amd64.whl``` then install via ```pip install opencv_python-3*win_amd64.whl```
 
 ### Install dependencies:
-```sudo pip install numpy, scipy, scikit-learn, joblib```
+```sudo pip install numpy, scipy, scikit-learn, joblib, matplotlib```
 
 ### Python dependencies:
 - **Scikit-learn** 0.17.1 (I have it built from source 0.18.dev0, but I don't use dev features anymore, so just the latest stable version should work. However, if you're seeing sklearn related errors, try to install it from source.)
@@ -91,7 +92,10 @@ g++ sptree.cpp tsne.cpp -o bh\_tsne -O2
 - **spearmint**: install <https://github.com/JasperSnoek/spearmint> and it's dependencies for Bayesian Optimization with:
 ```
 cd ~
-sudo pip install protobuf
+This used to work: sudo pip install protobuf
+Now on Ubuntu 17 I had to do:
+sudo apt-get install python-protobuf
+sudo apt install protobuf-compiler
 git clone https://github.com/JasperSnoek/spearmint.git
 cd spearmint/spearmint
 bin/make_protobufs
