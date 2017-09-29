@@ -98,41 +98,43 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         joblib.dump(model, 'model.pkl')
         return 0.
 
-    feature_folds = []
-    for j, f_ in enumerate(folds):
-        train_set_pos = f_[0]
-        train_set_neg = f_[1]
-        pos_feat_p_img, neg_feat_p_img = extract_features([train_set_pos, train_set_neg], detector_name, descriptor_name, dect_params, n_features, dense)
-        feature_folds.append([pos_feat_p_img, neg_feat_p_img])
+    print "Extract features"
+    if not caching_SIFT or not os.path.exists("train_cache_0.npy"):
+        feature_folds = []
+        for j, f_ in enumerate(folds):
+            train_set_pos = f_[0]
+            train_set_neg = f_[1]
+            pos_feat_p_img, neg_feat_p_img = extract_features([train_set_pos, train_set_neg], detector_name, descriptor_name, dect_params, n_features, dense)
+            feature_folds.append([pos_feat_p_img, neg_feat_p_img])
 
     overall_k = 0
     for i, f in enumerate(folds):
         print "----- Fold: " + str(i)
-
         train_set_pos = []
         train_set_neg = []
         test_features = []
-        for j, f_ in enumerate(feature_folds):
-            if j == i:
-                test_features = [feature_folds[j][0], feature_folds[j][1]]
-            else:
-                train_set_pos += feature_folds[j][0]
-                train_set_neg += feature_folds[j][1]
-                print j
+        if not caching_SIFT or not os.path.exists("train_cache_0.npy"):
+            for j, f_ in enumerate(feature_folds):
+                if j == i:
+                    test_features = [feature_folds[j][0], feature_folds[j][1]]
+                else:
+                    train_set_pos += feature_folds[j][0]
+                    train_set_neg += feature_folds[j][1]
+                    print j
 
-        pos_feat = [item for sublist in train_set_pos for item in sublist]
-        pos_feat = np.asarray(pos_feat)
+        # pos_feat = [item for sublist in train_set_pos for item in sublist]
+        # pos_feat = np.asarray(pos_feat)
 
-        neg_feat = [item for sublist in train_set_neg for item in sublist]
-        neg_feat = np.asarray(neg_feat)
+        # neg_feat = [item for sublist in train_set_neg for item in sublist]
+        # neg_feat = np.asarray(neg_feat)
 
-        features = np.concatenate((pos_feat, neg_feat))
-        np.random.seed(42)
-        np.random.shuffle(features)
+        # features = np.concatenate((pos_feat, neg_feat))
+        # np.random.seed(42)
+        # np.random.shuffle(features)
 
-        vocabulary = train_bagofwords(features, bow_size)
-        np.save("large_vocabulary_" + str(j), vocabulary)
-        continue
+        # vocabulary = train_bagofwords(features, bow_size)
+        # np.save("large_vocabulary_" + str(j), vocabulary)
+        # continue
 
         test_filenames = f[0] + f[1]
         random.shuffle(test_filenames)
@@ -312,7 +314,7 @@ def classify_img_using_model(img_filename, vocabulary, model, detector_name='SIF
 def extract_features(classes, detector_name, descriptor_name, dect_params, n_features, dense):
     features_per_class = []
     for c in classes:
-        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features, dense=dense)
+        features = get_features_array(c, detector_name, descriptor_name, dect_params, max_features=n_features, dense=dense, testing=True)
         features_per_class.append(features)
     return features_per_class
 
@@ -433,9 +435,9 @@ if __name__ == '__main__':
 
     nfeatures = params["nfeatures"]
     bow_size = params["bow_size"]
-    svm_gamma = float(sys.argv[1])
+    svm_gamma = params["svm_gamma"]
     edgeThreshold = params["edgeThreshold"]
-    svm_C = float(sys.argv[2])
+    svm_C = float(params["svm_C"])
     sigma = params["sigma"]
     contrastThreshold = params["contrastThreshold"]
     # weight = float(sys.argv[3])
@@ -467,5 +469,6 @@ if __name__ == '__main__':
     print model_params
 
     # kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True)
-    kappa = cross_validate_with_participants(5, parts, classifier="svm", dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=False, dense=False)
+    kappa = cross_validate_with_participants(5, parts, classifier="svm", dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True, dense=False)
+
     print "Final score:" + str(kappa)
