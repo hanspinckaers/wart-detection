@@ -99,7 +99,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         return 0.
 
     print "Extract features"
-    if not caching_SIFT or not os.path.exists("train_cache_0.npy"):
+    if not caching_SIFT or not os.path.exists("train_cache_4.npy"):
         feature_folds = []
         for j, f_ in enumerate(folds):
             train_set_pos = f_[0]
@@ -113,7 +113,7 @@ def cross_validate_with_participants(kfold, participants, detector_name='SIFT', 
         train_set_pos = []
         train_set_neg = []
         test_features = []
-        if not caching_SIFT or not os.path.exists("train_cache_0.npy"):
+        if not caching_SIFT or not os.path.exists("train_cache_4.npy"):
             for j, f_ in enumerate(feature_folds):
                 if j == i:
                     test_features = [feature_folds[j][0], feature_folds[j][1]]
@@ -289,7 +289,6 @@ def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', desc
     else:
         descs = np.load(cache_name + ".npy")
         indices = np.load(cache_name + "_indices.npy")
-    pu.db
     # np.save("des_cache", descs)
     # np.save("indices_cache", indices)
     predictions = model.predict(descs)
@@ -318,13 +317,20 @@ def extract_features(classes, detector_name, descriptor_name, dect_params, n_fea
         features_per_class.append(features)
     return features_per_class
 
-
 def train_bagofwords(features, bow_size, norm=cv2.NORM_L2):
     if norm == cv2.NORM_L2:
+        # train_input_fn = tf.estimator.inputs.numpy_input_fn(
+        #     x={"x": np.array(features)},
+        #     num_epochs=None,
+        #     shuffle=True)
+        # kmeans = tf.contrib.learn.KMeansClustering(num_clusters=bow_size)
+        # _ = kmeans.fit(train_input_fn)
+        # clusters = kmeans.clusters()
+        # print(clusters)
         bow = cv2.BOWKMeansTrainer(bow_size)
         bow.add(features)
         vocabulary = bow.cluster()
-
+        # print vocabulary
     else:
         # implementation of https://www.researchgate.net/publication/236010493_A_Fast_Approach_for_Integrating_ORB_Descriptors_in_the_Bag_of_Words_Model
         vocabulary = kmajority(features.astype(int), bow_size)
@@ -350,7 +356,6 @@ def hist_with_img(descs, vocabulary, norm=cv2.NORM_L2):
 
 
 def hist_using_vocabulary(feat_per_img_per_class, vocabulary, norm=cv2.NORM_L2):
-    pu.db
     max_count = 0
     for c in feat_per_img_per_class:
         max_count += len(c)
@@ -431,6 +436,9 @@ if __name__ == '__main__':
                 parts.append(part)
 
     params = {'nfeatures': 100, 'bow_size': 262, 'svm_gamma': -0.105758443512, 'edgeThreshold': 88.4141769336, 'svm_C': 2.83142990871, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
+
+    # actual settings of the last optimization
+    params = {'nfeatures': 100, 'bow_size': 500, 'svm_gamma': 0.958346832281, 'edgeThreshold': 88.4141769336, 'svm_C': 1.39781709889, 'sigma': 0.466832044073, 'contrastThreshold': 0.0001}
     print sys.argv
 
     nfeatures = params["nfeatures"]
@@ -467,7 +475,6 @@ if __name__ == '__main__':
 
     print dect_params
     print model_params
-
     # kappa = cross_validate_with_participants(5, parts, dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True)
     kappa = cross_validate_with_participants(5, parts, classifier="svm", dect_params=dect_params, bow_size=bow_size, model_params=model_params, save=False, caching_SIFT=True, dense=False)
 

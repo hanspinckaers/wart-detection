@@ -1,0 +1,71 @@
+------- Fold: 0
+1
+2
+3
+4
+Testing with 1991 pos 3203 neg
+Training with 6753 pos 14938 neg
+--- Fit model---
+--- Overall training model took 172.07079196 ---
+TP: 1135 FP: 268 TN 2935 FN: 856
+--- kfold: 0, accuracy: 0.783596457451, exp_mean*coverage: 0.563031889152
+----- Fold: 1
+0
+2
+3
+4
+Testing with 1733 pos 3882 neg
+Training with 7011 pos 14259 neg
+--- Fit model---
+--- Overall training model took 167.930814028 ---
+TP: 1004 FP: 507 TN 3375 FN: 729
+--- kfold: 1, accuracy: 0.779875333927, exp_mean*coverage: 0.519796431033
+----- Fold: 2
+0
+1
+3
+4
+Testing with 1636 pos 3749 neg
+Training with 7108 pos 14392 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 6267.61364603 ---
+Generating features for test
+TP: 1025 FP: 445 TN 3304 FN: 611
+--- kfold: 2, accuracy: 0.803899721448, exp_mean*coverage: 0.564512381051
+----- Fold: 3
+0
+1
+2
+4
+Testing with 1673 pos 3272 neg
+Training with 7071 pos 14869 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 6226.10991001 ---
+Generating features for test
+TP: 1055 FP: 373 TN 2899 FN: 618
+--- kfold: 3, accuracy: 0.799595551062, exp_mean*coverage: 0.572569881808
+----- Fold: 4
+0
+1
+2
+3
+Testing with 1711 pos 4035 neg
+Training with 7033 pos 14106 neg
+--- Gather features---
+--- Train BOW---
+--- Make hists---
+--- Fit model---
+--- Overall training model took 5972.18203688 ---
+Generating features for test
+TP: 1057 FP: 376 TN 3659 FN: 654
+--- kfold: 4, accuracy: 0.820744865994, exp_mean*coverage: 0.587187438879
+----- Overall exp mean: 0.561419604385
+----- Overall kfold took 19535.1096151 ---
+Final score:0.561419604385
+
