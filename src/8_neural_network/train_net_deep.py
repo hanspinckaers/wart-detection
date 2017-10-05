@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 import cv2
 import pudb
+from sklearn.preprocessing import scale
 
 hists = np.load("../3_svm_model/cached/train_cache_0.npy")
 hists_test = np.load("../3_svm_model/cached/test_cache_0.npy")
@@ -11,25 +12,29 @@ labels_test = np.load("../3_svm_model/test_cache_0_labels.npy")
 labels = labels[:, np.newaxis]
 labels_test = labels_test[:, np.newaxis]
 
-# fully connected layers
-K = 100
-L = 50
-M = 30
-N = 20
+hists = hists * 200. # rescale hists
 
-W1 = tf.Variable(tf.truncated_normal([500, K], stddev=100))
+# fully connected layers
+K = 200
+L = 100
+# M = 20
+# N = 20
+
+tf.layers.batch_normalization
+
+W1 = tf.Variable(tf.truncated_normal([500, K], stddev=0.1))
 B1 = tf.Variable(tf.zeros([K]))
 
-W2 = tf.Variable(tf.truncated_normal([K, L], stddev=50))
+W2 = tf.Variable(tf.truncated_normal([K, L], stddev=0.1))
 B2 = tf.Variable(tf.zeros([L]))
 
-W3 = tf.Variable(tf.truncated_normal([L, M], stddev=5))
-B3 = tf.Variable(tf.zeros([M]))
+# W3 = tf.Variable(tf.truncated_normal([L, M], stddev=0.1))
+# B3 = tf.Variable(tf.zeros([M]))
 
-W4 = tf.Variable(tf.truncated_normal([M, N], stddev=0.1))
-B4 = tf.Variable(tf.zeros([N]))
+# W4 = tf.Variable(tf.truncated_normal([M, N], stddev=0.1))
+# B4 = tf.Variable(tf.zeros([N]))
 
-W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=0.1))
+W5 = tf.Variable(tf.truncated_normal([L, 2], stddev=0.1))
 B5 = tf.Variable(tf.zeros([2]))
 
 X = tf.placeholder(tf.float32, [None, 500])
@@ -44,18 +49,18 @@ with tf.name_scope("layer2"):
     tf.summary.histogram("weights", W2)
     tf.summary.histogram("activations", Y2)
 
-with tf.name_scope("layer3"):
-    Y3 = tf.nn.sigmoid(tf.matmul(Y2, W3) + B3)
-    tf.summary.histogram("weights", W3)
-    tf.summary.histogram("activations", Y3)
+# with tf.name_scope("layer3"):
+#     Y3 = tf.nn.sigmoid(tf.matmul(Y2, W3) + B3)
+#     tf.summary.histogram("weights", W3)
+#     tf.summary.histogram("activations", Y3)
 
-with tf.name_scope("layer4"):
-    Y4 = tf.nn.sigmoid(tf.matmul(Y3, W4) + B4)
-    tf.summary.histogram("weights", W4)
-    tf.summary.histogram("activations", Y4)
+# with tf.name_scope("layer4"):
+#     Y4 = tf.nn.sigmoid(tf.matmul(Y3, W4) + B4)
+#     tf.summary.histogram("weights", W4)
+#     tf.summary.histogram("activations", Y4)
 
 with tf.name_scope("layer5"):
-    Y5 = tf.nn.softmax(tf.matmul(Y4, W5) + B5)
+    Y5 = tf.nn.softmax(tf.matmul(Y2, W5) + B5)
     tf.summary.histogram("weights", W5)
     tf.summary.histogram("predictions", Y5)
     tf.summary.histogram("bias", B5)
@@ -66,7 +71,7 @@ Y_ = tf.placeholder(tf.float32, [None, 2])
 # cross_entropy = -tf.reduce_sum(Y_ * tf.log(Y))
 # according to documentation
 # tf.nn.softmax_cross_entropy_with_logits is more stable
-cross_entropy = tf.reduce_sum(
+cross_entropy = tf.reduce_mean(
     tf.nn.sigmoid_cross_entropy_with_logits(labels=Y_, logits=Y5))
 # tf.summary.scalar('cross_entropy', cross_entropy)
 
@@ -84,16 +89,14 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 tf.summary.scalar('accuracy', accuracy)
 tf.summary.scalar('num_pos', num_pos)
 
-# optimizer = tf.train.GradientDescentOptimizer(0.5)
-# train_step = optimizer.minimize(cross_entropy)
-
 # training step, learning rate = 0.003
-# global_step = tf.Variable(0, trainable=False)
-# starter_learning_rate = 0.001
-# learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
-#                                            100000, 0.96, staircase=True)
+global_step = tf.Variable(0, trainable=False)
+starter_learning_rate = 5.
+learning_rate = tf.train.exponential_decay(starter_learning_rate, global_step,
+                                           15000, 0.90, staircase=True)
+tf.summary.scalar('learning_rate', learning_rate)
 
-train_step = tf.train.GradientDescentOptimizer(0.003).minimize(cross_entropy)
+train_step = tf.train.GradientDescentOptimizer(learning_rate).minimize(cross_entropy, global_step=global_step)
 
 if 'session' in locals() and session is not None:
     print('Close interactive session')
@@ -103,7 +106,7 @@ if 'session' in locals() and session is not None:
 sess = tf.InteractiveSession()
 # sess.run(init)
 
-batch_size = 200
+batch_size = 35
 
 merged = tf.summary.merge_all()
 train_writer = tf.summary.FileWriter('./logs/train',
