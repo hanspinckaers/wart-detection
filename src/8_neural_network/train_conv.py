@@ -83,20 +83,20 @@ hists_test = np.concatenate((test_set_neg, test_set_pos))/255.0-0.5
 labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
 
 # depth in convolutional layers
-K = 12 # conv layer, depth = K, patchsize = 5, stride = 1
-L = 16 # conv layer, depth = L, patchsize = 4, stride = 2 img=32
-M = 24 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+K = 6 # conv layer, depth = K, patchsize = 5, stride = 1
+L = 12 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
+M = 18 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
 N = 100 # fully connected layer 
 
-W1 = tf.Variable(tf.truncated_normal([5, 5, 3, K], stddev=.1))
+W1 = tf.Variable(tf.truncated_normal([9, 9, 3, K], stddev=.03))
 B1 = tf.Variable(tf.zeros([K]))
-W2 = tf.Variable(tf.truncated_normal([4, 4, K, L], stddev=.1))
+W2 = tf.Variable(tf.truncated_normal([4, 4, K, L], stddev=.03))
 B2 = tf.Variable(tf.zeros([L]))
-W3 = tf.Variable(tf.truncated_normal([4, 4, L, M], stddev=.1))
+W3 = tf.Variable(tf.truncated_normal([4, 4, L, M], stddev=.03))
 B3 = tf.Variable(tf.zeros([M]))
-W4 = tf.Variable(tf.truncated_normal([8*8*M, N], stddev=.1))
+W4 = tf.Variable(tf.truncated_normal([8*8*M, N], stddev=.03))
 B4 = tf.Variable(tf.zeros([N]))
-W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=.1))
+W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=.03))
 B5 = tf.Variable(tf.zeros([1]))
 
 keep_prob = tf.placeholder(tf.float32)
@@ -113,7 +113,7 @@ iter = tf.placeholder(tf.int32)
 
 def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
     # adding the iteration prevents from averaging across non-existing iterations
-    exp_moving_avg = tf.train.ExponentialMovingAverage(0.999, iteration)
+    exp_moving_avg = tf.train.ExponentialMovingAverage(0.99, iteration)
     bnepsilon = 1e-5
     if convolutional:
         mean, variance = tf.nn.moments(Ylogits, [0, 1, 2])
@@ -130,39 +130,46 @@ def compatible_convolutional_noise_shape(Y):
     noiseshape = noiseshape * tf.constant([1,0,0,1]) + tf.constant([0,1,1,0])
     return noiseshape
 
-Y1 = tf.nn.relu(
-    tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding="SAME") + B1)
-poolY1 = tf.layers.max_pooling2d(Y1, 2, 2)
-# dropY1 = tf.nn.dropout(poolY1, keep_prob)
-Y2 = tf.nn.relu(
-    tf.nn.conv2d(poolY1, W2, strides=[1, 1, 1, 1], padding="SAME") + B2)
-poolY2 = tf.layers.max_pooling2d(Y2, 2, 2)
-# dropY2 = tf.nn.dropout(poolY2, keep_prob, compatible_convolutional_noise_shape(poolY1))
-Y3 = tf.nn.relu(
-    tf.nn.conv2d(poolY2, W3, strides=[1, 1, 1, 1], padding="SAME") + B3)
-poolY3 = tf.layers.max_pooling2d(Y3, 2, 2)
-# dropY3 = tf.nn.dropout(poolY3, keep_prob, compatible_convolutional_noise_shape(poolY1))
-YY = tf.reshape(poolY3, shape=[-1, 8*8*M])
-Y4 = tf.nn.relu(
-    tf.matmul(YY, W4) + B4)
-Y4_drop = tf.nn.dropout(Y4, keep_prob)
+Y1l = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME')
+Y1bn, update_ema1 = batchnorm(Y1l, tst, iter, B1, convolutional=True)
+Y1r = tf.nn.relu(Y1bn)
+Y1 = tf.layers.max_pooling2d(Y1r, 2, 2)
 
-Y = tf.nn.softmax(
-    tf.matmul(Y4_drop, W5) + B5)
+Y2l = tf.nn.conv2d(Y1, W2, strides=[1, 1, 1, 1], padding='SAME')
+Y2bn, update_ema2 = batchnorm(Y2l, tst, iter, B2, convolutional=True)
+Y2r = tf.nn.relu(Y2bn)
+Y2 = tf.layers.max_pooling2d(Y2r, 2, 2)
 
-# keep_prob = tf.placeholder(tf.float32)
-# Y1_drop = tf.nn.dropout(Y1, keep_prob
+Y3l = tf.nn.conv2d(Y2, W3, strides=[1, 1, 1, 1], padding='SAME')
+Y3bn, update_ema3 = batchnorm(Y3l, tst, iter, B3, convolutional=True)
+Y3r = tf.nn.relu(Y3bn)
+Y3 = tf.layers.max_pooling2d(Y3r, 2, 2)
+
+YY = tf.reshape(Y3, shape=[-1, 8*8*M])
+
+Y4l = tf.matmul(YY, W4)
+Y4bn, update_ema4 = batchnorm(Y4l, tst, iter, B4)
+Y4r = tf.nn.relu(Y4bn)
+Y4 = tf.nn.dropout(Y4r, keep_prob)
+
+Y = tf.nn.softmax(tf.matmul(Y4, W5) + B5)
+
+update_ema = tf.group(update_ema1, update_ema2, update_ema3, update_ema4)
 
 # placeholder value for the ground truth label of the network
 Y_ = tf.placeholder(tf.float32, [None, 2])
 
-batch_size = 64 # of 64
+batch_size = 32 # of 64
 
 # loss function normalized for batchsize
 cross_entropy = \
     tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) \
-    * batch_size
+        tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
+#    + 0.01 * tf.nn.l2_loss(W1) \
+#    + 0.01 * tf.nn.l2_loss(W2) \
+#    + 0.01 * tf.nn.l2_loss(W3) \
+#    + 0.01 * tf.nn.l2_loss(W4) \
+#    + 0.01 * tf.nn.l2_loss(W5) \
 
 # % of correct answers found in batch
 is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
@@ -171,12 +178,12 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.001
-learning_rate = \
+start_learning_rate = 0.003
+learning_rate = tf.maximum(0.00005, \
     tf.train.exponential_decay(
-        start_learning_rate, global_step, 10000, 0.90, staircase=True)
+        start_learning_rate, global_step, 1000, 0.90, staircase=True))
 
-train_step = tf.train.AdamOptimizer(start_learning_rate) \
+train_step = tf.train.AdamOptimizer(learning_rate) \
     .minimize(cross_entropy, global_step=global_step)
 
 # make a session
@@ -221,8 +228,8 @@ valid_summary_op = tf.summary.merge([acc_summary])
 
 # saving tensorboard logs
 now = datetime.datetime.time(datetime.datetime.now())
-date = now.strftime("%d %H:%M:%S")
-train_writer = tf.summary.FileWriter('./logs/conv ' + date, sess.graph)
+date = now.strftime("%a %H:%M:%S")
+train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 
 # make a random test set of the data with 50% pos and 50% neg
 p = np.random.permutation(len(hists_test))
@@ -282,9 +289,10 @@ for j in range(2000):
         # make one-hot array of labels
         batch_Y = np.squeeze(batch_Y)
         batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
-        train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.1}
+        train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.1, \
+            tst: False, iter: i+j*number_of_runs}
 
-        if i % 10 == 0:
+        if i % 5 == 0:
             summary, weights, pred, batch_accuracy, batch_entropy = \
                 sess.run(
                     [merged, W5, Y, accuracy, cross_entropy],
@@ -299,6 +307,8 @@ for j in range(2000):
             entropy.append(batch_entropy)
 
         sess.run(train_step, feed_dict=train_data)
+        sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+            tst: False, iter: i+j*number_of_runs})
 
     # Take the mean of you measure
     mean_accuracy = np.mean(accuracies)
@@ -312,7 +322,8 @@ for j in range(2000):
     test_num_pos, test_pred, test_accuracy, test_summary = \
         sess.run(
             [num_pos, Y, accuracy, valid_summary_op],
-            feed_dict={X: hists_test, Y_: labels_test, keep_prob: 1.0})
+            feed_dict={X: hists_test, Y_: labels_test, keep_prob: 1.0, \
+                tst: True, iter: i+j*number_of_runs})
 
     print("Test accuracy of epoch (" + str(j + 1) + "): "
         + str(test_accuracy) + ", pos: " + str(test_num_pos)
@@ -324,16 +335,8 @@ for j in range(2000):
 
 #Create a saver object which will save all the variables
 saver = tf.train.Saver()
-save_path = saver.save(sess, "./models/conv.ckpt")
+save_path = saver.save(sess, "./models/conv2.ckpt")
 print("Model saved in file: %s" % save_path)
-
-# first model:
-# model_1_layer = 1 layer, 100 neurons, no dropout
-# logs = "train 01 11:52:44"
-# learning rate 0.01, every 100000 0.99
-# batch_size 64
-# 2000 epochs: 0.8 on train, 0.77 on test
-# rescaling * 4
 
 # first model
 ## depth in convolutional layers
@@ -346,5 +349,57 @@ print("Model saved in file: %s" % save_path)
 # N = 100 # fully connected layer 
 # learning rate = 0.001
 # batch_size 64
+# no batch norm
 # dropout 0.1 on layer between connected and softmax
-# Test set: 87%
+# Test set: 88% in 200 epochs
+# conv 01 16:51:39
+
+# second model, ran for 2000 epochs, no improvement
+## depth in convolutional layers
+# K = 12 # conv layer, depth = K, patchsize = 5, stride = 1
+# pooling 2x2
+# L = 16 # conv layer, depth = L, patchsize = 4, stride = 2 img=32
+# pooling 2x2
+# M = 24 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+# pooling 2x2
+# N = 100 # fully connected layer 
+# learning rate = 0.0005
+# batch_size 128
+# no batch norm
+# dropout 0.05 on layer between connected and softmax
+# Test set: 87-88%
+# seems to overfit less
+# conv 01 18:29:09
+
+# third model
+# depth in convolutional layers
+# K = 6 # conv layer, depth = K, patchsize = 5, stride = 1
+# L = 12 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
+# M = 18 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+# N = 200 # fully connected layer 
+# dropout 0.1 on layer between connected and softmax
+# learning rate = 0.003, min 0.00001, decay 0.9 per 1000 global steps
+# batch size 128
+# test accuracy stabilizes around 86.6%, but reaches 87.3% in the beginning
+# train accuracy is around 96%
+# 200 epochs
+# conv 01 19:15:33
+
+# fourth model
+# depth in convolutional layers
+# K = 6 # conv layer, depth = K, patchsize = 5, stride = 1
+# L = 12 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
+# M = 18 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+# N = 200 # fully connected layer 
+# dropout 0.1 on layer between connected and softmax
+# learning rate = 0.003, min 0.00005, decay 0.9 per 1000 global steps
+# batch size 32
+# test accuracy stabilizes around 87.5%, really nice stable curve
+# train accuracy is around 91%
+# 200 epochs
+# conv Mon 10:23:17
+
+# Notes:
+# Seems like batch norm makes the curve less stable (test curve).
+# Seems like larger batch size decreases overfitting
+# High dropout is needed for our data (maybe too big network or noisy data)
