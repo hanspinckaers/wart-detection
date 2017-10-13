@@ -1,13 +1,17 @@
 import numpy as np
+import os
+# os.environ['TF_CPP_MIN_VLOG_LEVEL'] = '1'
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
+
 import cv2
 import pudb
 import datetime
 import time
 import sys
-import os
 import fnmatch
 import random
+from imgaug import augmenters as iaa
 
 sys.path.append('../3_svm_model/')
 sys.path.append('../2_compare_detectors/')
@@ -15,105 +19,145 @@ sys.path.append('../2_compare_detectors/')
 from train import filenames_for_participants
 from divide import divide_in
 
-hists = np.load("../3_svm_model/cached/train_cache_0.npy")
-hists_test = np.load("../3_svm_model/cached/test_cache_0.npy")
-labels = np.load("../3_svm_model/cached/train_cache_0_labels.npy")
-labels_test = np.load("../3_svm_model/test_cache_0_labels.npy")
-
-labels = labels[:, np.newaxis]
-participants = []
-for root, dirnames, filenames in os.walk("../../images/train_set"):
-    for filename in fnmatch.filter(filenames, '*.png'):
-        part = filename.split(" - ")[0]
-        if part not in participants:
-            participants.append(part)
-participants.sort()
-
+write_cache = False
 random.seed(0)
-participants_sliced = divide_in(participants, 5)
-folds = []
-for p in participants_sliced:
-    filenames_pos, filenames_neg = \
-        filenames_for_participants(p,
-            os.walk("../../images/train_set"), cream=True)
-    filenames_pos_mining, filenames_neg_mining = \
-        filenames_for_participants(p,
-            os.walk("../../images/classified_mining"), cream=True)
-    filenames_pos = filenames_pos + filenames_pos_mining
-    filenames_neg = filenames_neg + filenames_neg_mining
-    filenames_pos.sort()
-    filenames_neg.sort()
 
-    images_pos = []
-    images_neg = []
+if write_cache:
+    hists = np.load("../3_svm_model/cached/train_cache_0.npy")
+    hists_test = np.load("../3_svm_model/cached/test_cache_0.npy")
+    labels = np.load("../3_svm_model/cached/train_cache_0_labels.npy")
+    labels_test = np.load("../3_svm_model/test_cache_0_labels.npy")
 
-    for i, filename in enumerate(filenames_pos):
-        img = cv2.imread(filename)
-        img = cv2.resize(img, (64, 64))
-        images_pos.append(img)
-    for i, filename in enumerate(filenames_neg):
-        img = cv2.imread(filename)
-        img = cv2.resize(img, (64, 64))
-        images_neg.append(img)
+    labels = labels[:, np.newaxis]
+    participants = []
+    for root, dirnames, filenames in os.walk("../../images/train_set"):
+        for filename in fnmatch.filter(filenames, '*.png'):
+            part = filename.split(" - ")[0]
+            if part not in participants:
+                participants.append(part)
+    participants.sort()
 
-    folds.append([images_pos, images_neg])
+    participants_sliced = divide_in(participants, 5)
+    folds = []
+    for p in participants_sliced:
+        filenames_pos, filenames_neg = \
+            filenames_for_participants(p,
+                os.walk("../../images/train_set"), cream=True)
+        filenames_pos_mining, filenames_neg_mining = \
+            filenames_for_participants(p,
+                os.walk("../../images/classified_mining"), cream=True)
+        filenames_pos = filenames_pos + filenames_pos_mining
+        filenames_neg = filenames_neg + filenames_neg_mining
+        filenames_pos.sort()
+        filenames_neg.sort()
 
-train_set_pos = []
-train_set_neg = []
+        images_pos = []
+        images_neg = []
 
-test_set_pos = []
-test_set_neg = []
-for j, f_ in enumerate(folds):
-    if j == 0:
-        test_set_pos = folds[j][0]
-        test_set_neg = folds[j][1]
-    else:
-        train_set_pos += folds[j][0]
-        train_set_neg += folds[j][1]
+        for i, filename in enumerate(filenames_pos):
+            img = cv2.imread(filename)
+            img = cv2.resize(img, (64, 64))
+            images_pos.append(img)
+        for i, filename in enumerate(filenames_neg):
+            img = cv2.imread(filename)
+            img = cv2.resize(img, (64, 64))
+            images_neg.append(img)
 
-labels_train = np.zeros(len(train_set_pos)+len(train_set_neg))
-labels_train[len(train_set_neg)-1:] = 1
-hists_train = np.concatenate((train_set_neg, train_set_pos))/255.0-0.5
+        folds.append([images_pos, images_neg])
 
-labels_test = np.zeros(len(test_set_pos)+len(test_set_neg))
-labels_test[len(test_set_neg)-1:] = 1
-hists_test = np.concatenate((test_set_neg, test_set_pos))/255.0-0.5
+    train_set_pos = []
+    train_set_neg = []
 
-# one-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
-labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
+    test_set_pos = []
+    test_set_neg = []
+    for j, f_ in enumerate(folds):
+        if j == 0:
+            test_set_pos = folds[j][0]
+            test_set_neg = folds[j][1]
+        else:
+            train_set_pos += folds[j][0]
+            train_set_neg += folds[j][1]
+
+    labels_train = np.zeros(len(train_set_pos)+len(train_set_neg))
+    labels_train[len(train_set_neg)-1:] = 1
+
+    seq1 = iaa.Sequential([
+        iaa.Fliplr(1.0), # horizontally flip 50% of the images
+    ])
+
+    seq2 = iaa.Sequential([
+        iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
+        iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+    ])
+
+    hists_train = np.concatenate((train_set_neg, train_set_pos))
+    print "Size of the original train data: " + str(hists_train.shape)
+    images_aug = seq1.augment_images(hists_train)
+    images1_aug = seq2.augment_images(np.concatenate((hists_train, images_aug)))
+    hists_train = np.concatenate((hists_train, images_aug, images1_aug))
+    labels_train = np.concatenate((labels_train, labels_train, labels_train, labels_train))
+
+    print "Size of the augmented train data: " + str(hists_train.shape)
+    print "Size of the augmented train labels: " + str(labels_train.shape)
+
+    # hists_train = hists_train/255.0-0.5
+    hists_train = hists_train - np.mean(hists_train, axis=0)
+    hists_train = hists_train / 255.0
+
+    labels_test = np.zeros(len(test_set_pos)+len(test_set_neg))
+    labels_test[len(test_set_neg)-1:] = 1
+    # hists_test = np.concatenate((test_set_neg, test_set_pos))/255.0-0.5
+    hists_test = np.concatenate((test_set_neg, test_set_pos))
+    hists_test = hists_test - np.mean(hists_test, axis=0)
+    hists_test = hists_test / 255.0
+
+    # one-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
+    labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
+
+    np.save("hists_test", hists_test)
+    np.save("labels_test", labels_test)
+    np.save("hists_train", hists_train)
+    np.save("labels_train", labels_train)
+
+else:
+    hists_test = np.load("hists_test.npy")
+    labels_test = np.load("labels_test.npy")
+    hists_train = np.load("hists_train.npy")
+    labels_train = np.load("labels_train.npy")
 
 # depth in convolutional layers
-K = 6 # conv layer, depth = K, patchsize = 5, stride = 1
-L = 12 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
-M = 18 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
-N = 100 # fully connected layer 
+K = 24 # conv layer, depth = K, patchsize = 5, stride = 1
+L = 48 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
+M = 64 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+N = 300 # fully connected layer 
 
-W1 = tf.Variable(tf.truncated_normal([9, 9, 3, K], stddev=.03))
+W1 = tf.Variable(tf.truncated_normal([5, 5, 3, K], stddev=.01))
 B1 = tf.Variable(tf.zeros([K]))
-W2 = tf.Variable(tf.truncated_normal([4, 4, K, L], stddev=.03))
+W2 = tf.Variable(tf.truncated_normal([4, 4, K, L], stddev=.01))
 B2 = tf.Variable(tf.zeros([L]))
-W3 = tf.Variable(tf.truncated_normal([4, 4, L, M], stddev=.03))
+W3 = tf.Variable(tf.truncated_normal([3, 3, L, M], stddev=.01))
 B3 = tf.Variable(tf.zeros([M]))
-W4 = tf.Variable(tf.truncated_normal([8*8*M, N], stddev=.03))
+W4 = tf.Variable(tf.truncated_normal([8 * 8 * M, N], stddev=.01))
 B4 = tf.Variable(tf.zeros([N]))
-W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=.03))
+W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=.01))
 B5 = tf.Variable(tf.zeros([1]))
+
+batch_size = 128 # of 64
+keep_rate_dropout = 0.3
+
 
 keep_prob = tf.placeholder(tf.float32)
 
 # Input placeholder
 X = tf.placeholder(tf.float32, [None, 64, 64, 3])
 
-# dropout probability
-pkeep = tf.placeholder(tf.float32)
-pkeep_conv = tf.placeholder(tf.float32)
 # test flag for batch norm
 tst = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
 
 def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
     # adding the iteration prevents from averaging across non-existing iterations
-    exp_moving_avg = tf.train.ExponentialMovingAverage(0.99, iteration)
+    exp_moving_avg = tf.train.ExponentialMovingAverage(0.25, iteration)
     bnepsilon = 1e-5
     if convolutional:
         mean, variance = tf.nn.moments(Ylogits, [0, 1, 2])
@@ -124,11 +168,6 @@ def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
     v = tf.cond(is_test, lambda: exp_moving_avg.average(variance), lambda: variance)
     Ybn = tf.nn.batch_normalization(Ylogits, m, v, offset, None, bnepsilon)
     return Ybn, update_moving_averages
-
-def compatible_convolutional_noise_shape(Y):
-    noiseshape = tf.shape(Y)
-    noiseshape = noiseshape * tf.constant([1,0,0,1]) + tf.constant([0,1,1,0])
-    return noiseshape
 
 Y1l = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME')
 Y1bn, update_ema1 = batchnorm(Y1l, tst, iter, B1, convolutional=True)
@@ -159,17 +198,15 @@ update_ema = tf.group(update_ema1, update_ema2, update_ema3, update_ema4)
 # placeholder value for the ground truth label of the network
 Y_ = tf.placeholder(tf.float32, [None, 2])
 
-batch_size = 32 # of 64
-
 # loss function normalized for batchsize
 cross_entropy = \
     tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y))
-#    + 0.01 * tf.nn.l2_loss(W1) \
-#    + 0.01 * tf.nn.l2_loss(W2) \
-#    + 0.01 * tf.nn.l2_loss(W3) \
-#    + 0.01 * tf.nn.l2_loss(W4) \
-#    + 0.01 * tf.nn.l2_loss(W5) \
+        tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) \
+    + 0.09 * tf.nn.l2_loss(W1) \
+    + 0.09 * tf.nn.l2_loss(W2) \
+    + 0.09 * tf.nn.l2_loss(W3) \
+    + 0.09 * tf.nn.l2_loss(W4) \
+    + 0.09 * tf.nn.l2_loss(W5) \
 
 # % of correct answers found in batch
 is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
@@ -178,18 +215,26 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.003
+start_learning_rate = 0.0001
 learning_rate = tf.maximum(0.00005, \
     tf.train.exponential_decay(
-        start_learning_rate, global_step, 1000, 0.90, staircase=True))
+        start_learning_rate, global_step, 1000, 0.95, staircase=True))
 
 train_step = tf.train.AdamOptimizer(learning_rate) \
-    .minimize(cross_entropy, global_step=global_step)
+    .minimize(cross_entropy, global_step=global_step, aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
 # make a session
 init = tf.global_variables_initializer()
 sess = tf.Session()
-sess.run(init)
+run_metadata = tf.RunMetadata()
+sess.run(init, options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE), run_metadata=run_metadata)
+
+# Print to stdout an analysis of the memory usage and the timing information
+# from running the graph broken down by operations.
+tf.contrib.tfprof.model_analyzer.print_model_analysis(
+    tf.get_default_graph(),
+    run_meta=run_metadata,
+    tfprof_options=tf.contrib.tfprof.model_analyzer.PRINT_ALL_TIMING_MEMORY)
 
 ########################
 # logging to tensorboard
@@ -249,7 +294,17 @@ hists_test = \
 labels_test = \
     labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
-for j in range(2000):
+#finalize graph to cath memory leaks
+sess.graph.finalize()
+
+###################################3
+###################################
+# make a sample to debug fast
+# p = np.random.permutation(len(hists_train))
+# hists_train = hists_train[p][0:2000]
+# labels_train = labels_train[p][0:2000]
+
+for j in range(10000):
     #shuffle data in epochs
     accuracies = []
     entropy = []
@@ -281,7 +336,7 @@ for j in range(2000):
     # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
     for i in range(number_of_runs):
         batch_begin = int(i*batch_size)
-        batch_end = int(np.min((i*batch_size+batch_size, len(hists)-1)))
+        batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch)-1)))
 
         batch_X = hists_epoch[batch_begin:batch_end]
         batch_Y = labels_epoch[batch_begin:batch_end]
@@ -289,10 +344,10 @@ for j in range(2000):
         # make one-hot array of labels
         batch_Y = np.squeeze(batch_Y)
         batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
-        train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.1, \
+        train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
             tst: False, iter: i+j*number_of_runs}
 
-        if i % 5 == 0:
+        if i % 1 == 0 and i > 0:
             summary, weights, pred, batch_accuracy, batch_entropy = \
                 sess.run(
                     [merged, W5, Y, accuracy, cross_entropy],
@@ -308,7 +363,7 @@ for j in range(2000):
 
         sess.run(train_step, feed_dict=train_data)
         sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-            tst: False, iter: i+j*number_of_runs})
+             tst: False, iter: i+j*number_of_runs})
 
     # Take the mean of you measure
     mean_accuracy = np.mean(accuracies)
@@ -319,23 +374,40 @@ for j in range(2000):
     print("Mean entropy of epoch  (" + str(j + 1) + "): "
         + str(mean_entropy))
 
-    test_num_pos, test_pred, test_accuracy, test_summary = \
-        sess.run(
-            [num_pos, Y, accuracy, valid_summary_op],
-            feed_dict={X: hists_test, Y_: labels_test, keep_prob: 1.0, \
-                tst: True, iter: i+j*number_of_runs})
+    # run the test in batches, the network is so large that there is not enough
+    # memory for all the test data at once
+    number_of_runs = int(np.floor(len(hists_test) / batch_size))
+    test_accuracies = []
+    for i in range(number_of_runs):
+        batch_begin = int(i*batch_size)
+        batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
 
-    print("Test accuracy of epoch (" + str(j + 1) + "): "
-        + str(test_accuracy) + ", pos: " + str(test_num_pos)
-        + " / " + str(labels_test.shape[0]))
+        batch_X = hists_test[batch_begin:batch_end]
+        batch_Y = labels_test[batch_begin:batch_end]
 
+        test_num_pos, test_pred, test_accuracy, test_summary = \
+            sess.run(
+                [num_pos, Y, accuracy, valid_summary_op],
+                feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+                    tst: True, iter: i+j*number_of_runs})
+
+        test_accuracies.append(test_accuracy)
+
+    mean_test_accuracy = np.mean(test_accuracies)
+    summary = tf.Summary(value=[
+        tf.Summary.Value(tag='test_accuracy', simple_value=mean_test_accuracy)])
+    train_writer.add_summary(summary, i+j*number_of_runs)
+
+    # print("Test accuracy of epoch (" + str(j + 1) + "): "
+    #     + str(mean_test_accuracy) + ", pos: " + str(test_num_pos)
+    #    + " / " + str(labels_test.shape[0]))
+    print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
     print("")
 
-    train_writer.add_summary(test_summary, i+j*number_of_runs)
 
-#Create a saver object which will save all the variables
+# Create a saver object which will save all the variables
 saver = tf.train.Saver()
-save_path = saver.save(sess, "./models/conv2.ckpt")
+save_path = saver.save(sess, "./models/conv3.ckpt")
 print("Model saved in file: %s" % save_path)
 
 # first model
@@ -386,11 +458,12 @@ print("Model saved in file: %s" % save_path)
 # conv 01 19:15:33
 
 # fourth model
+# stddev weight 0.03
 # depth in convolutional layers
-# K = 6 # conv layer, depth = K, patchsize = 5, stride = 1
+# K = 6 # conv layer, depth = K, patchsize = 9, stride = 1
 # L = 12 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
 # M = 18 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
-# N = 200 # fully connected layer 
+# N = 200 # fully connected layer (think it was 100)
 # dropout 0.1 on layer between connected and softmax
 # learning rate = 0.003, min 0.00005, decay 0.9 per 1000 global steps
 # batch size 32
@@ -399,7 +472,11 @@ print("Model saved in file: %s" % save_path)
 # 200 epochs
 # conv Mon 10:23:17
 
+# IDEA: use network above and only flip images!
+
 # Notes:
 # Seems like batch norm makes the curve less stable (test curve).
 # Seems like larger batch size decreases overfitting
 # High dropout is needed for our data (maybe too big network or noisy data)
+# after data augementatino is dropout not needed that much
+# max pooling removal on first layer improves accuracy.
