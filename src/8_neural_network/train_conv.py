@@ -12,6 +12,9 @@ import sys
 import fnmatch
 import random
 from imgaug import augmenters as iaa
+import imgaug as ia
+import matplotlib.pyplot as plt
+from scipy import misc
 
 sys.path.append('../3_svm_model/')
 sys.path.append('../2_compare_detectors/')
@@ -81,35 +84,26 @@ if write_cache:
     labels_train = np.zeros(len(train_set_pos)+len(train_set_neg))
     labels_train[len(train_set_neg)-1:] = 1
 
-    seq1 = iaa.Sequential([
-        iaa.Fliplr(1.0), # horizontally flip 50% of the images
-    ])
-
-    seq2 = iaa.Sequential([
-        iaa.Sharpen(alpha=(0, 1.0), lightness=(0.75, 1.5)),
-        iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
-    ])
-
     hists_train = np.concatenate((train_set_neg, train_set_pos))
     print "Size of the original train data: " + str(hists_train.shape)
-    images_aug = seq1.augment_images(hists_train)
-    images1_aug = seq2.augment_images(np.concatenate((hists_train, images_aug)))
-    hists_train = np.concatenate((hists_train, images_aug, images1_aug))
-    labels_train = np.concatenate((labels_train, labels_train, labels_train, labels_train))
+    # images_aug = seq1.augment_images(hists_train)
+    # images1_aug = seq2.augment_images(np.concatenate((hists_train, images_aug)))
+    # hists_train = np.concatenate((hists_train, images_aug, images1_aug))
+    # labels_train = np.concatenate((labels_train, labels_train, labels_train, labels_train))
 
     print "Size of the augmented train data: " + str(hists_train.shape)
     print "Size of the augmented train labels: " + str(labels_train.shape)
 
     # hists_train = hists_train/255.0-0.5
-    hists_train = hists_train - np.mean(hists_train, axis=0)
-    hists_train = hists_train / 255.0
+    # hists_train = hists_train - np.mean(hists_train, axis=0)
+    # hists_train = hists_train / 255.0
 
     labels_test = np.zeros(len(test_set_pos)+len(test_set_neg))
     labels_test[len(test_set_neg)-1:] = 1
     # hists_test = np.concatenate((test_set_neg, test_set_pos))/255.0-0.5
     hists_test = np.concatenate((test_set_neg, test_set_pos))
-    hists_test = hists_test - np.mean(hists_test, axis=0)
-    hists_test = hists_test / 255.0
+    # hists_test = hists_test - np.mean(hists_test, axis=0)
+    hists_test = hists_test / 255.0 - 0.5
 
     # one-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
     labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
@@ -128,23 +122,28 @@ else:
 # depth in convolutional layers
 K = 24 # conv layer, depth = K, patchsize = 5, stride = 1
 L = 48 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
-M = 64 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
-N = 300 # fully connected layer 
+M = 96 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+N = 192 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
+O = 200 # fully connected layer 
+P = 200 # fully connected layer 
 
-W1 = tf.Variable(tf.truncated_normal([5, 5, 3, K], stddev=.01))
+W1 = tf.Variable(tf.truncated_normal([3, 3, 3, K], stddev=2./(3*3*3)))
 B1 = tf.Variable(tf.zeros([K]))
-W2 = tf.Variable(tf.truncated_normal([4, 4, K, L], stddev=.01))
+W2 = tf.Variable(tf.truncated_normal([3, 3, K, L], stddev=2./(3*3*3)))
 B2 = tf.Variable(tf.zeros([L]))
-W3 = tf.Variable(tf.truncated_normal([3, 3, L, M], stddev=.01))
+W3 = tf.Variable(tf.truncated_normal([3, 3, L, M], stddev=2./(3*3*3)))
 B3 = tf.Variable(tf.zeros([M]))
-W4 = tf.Variable(tf.truncated_normal([8 * 8 * M, N], stddev=.01))
+W4 = tf.Variable(tf.truncated_normal([3, 3, M, N], stddev=2./(3*3*3)))
 B4 = tf.Variable(tf.zeros([N]))
-W5 = tf.Variable(tf.truncated_normal([N, 2], stddev=.01))
-B5 = tf.Variable(tf.zeros([1]))
+W5 = tf.Variable(tf.truncated_normal([8 * 8 * N, O], stddev=2./(8*8*N)))
+B5 = tf.Variable(tf.zeros([O]))
+W6 = tf.Variable(tf.truncated_normal([O, P], stddev=2./O))
+B6 = tf.Variable(tf.zeros([P]))
+W7 = tf.Variable(tf.truncated_normal([P, 2], stddev=2./P))
+B7 = tf.Variable(tf.zeros([2]))
 
-batch_size = 128 # of 64
+batch_size = 32 # of 64
 keep_rate_dropout = 0.3
-
 
 keep_prob = tf.placeholder(tf.float32)
 
@@ -156,8 +155,8 @@ tst = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
 
 def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
+    exp_moving_avg = tf.train.ExponentialMovingAverage(0.999, iteration)
     # adding the iteration prevents from averaging across non-existing iterations
-    exp_moving_avg = tf.train.ExponentialMovingAverage(0.25, iteration)
     bnepsilon = 1e-5
     if convolutional:
         mean, variance = tf.nn.moments(Ylogits, [0, 1, 2])
@@ -171,29 +170,40 @@ def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
 
 Y1l = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME')
 Y1bn, update_ema1 = batchnorm(Y1l, tst, iter, B1, convolutional=True)
-Y1r = tf.nn.relu(Y1bn)
-Y1 = tf.layers.max_pooling2d(Y1r, 2, 2)
+Y1 = tf.nn.relu(Y1bn)
+# Y1 = tf.layers.max_pooling2d(Y1r, 2, 2)
 
-Y2l = tf.nn.conv2d(Y1, W2, strides=[1, 1, 1, 1], padding='SAME')
+Y2l = tf.nn.conv2d(Y1, W2, strides=[1, 2, 2, 1], padding='SAME')
 Y2bn, update_ema2 = batchnorm(Y2l, tst, iter, B2, convolutional=True)
-Y2r = tf.nn.relu(Y2bn)
-Y2 = tf.layers.max_pooling2d(Y2r, 2, 2)
+Y2 = tf.nn.relu(Y2bn)
+#Y2 = tf.layers.max_pooling2d(Y2r, 2, 2)
 
-Y3l = tf.nn.conv2d(Y2, W3, strides=[1, 1, 1, 1], padding='SAME')
+Y3l = tf.nn.conv2d(Y2, W3, strides=[1, 2, 2, 1], padding='SAME')
 Y3bn, update_ema3 = batchnorm(Y3l, tst, iter, B3, convolutional=True)
-Y3r = tf.nn.relu(Y3bn)
-Y3 = tf.layers.max_pooling2d(Y3r, 2, 2)
+Y3 = tf.nn.relu(Y3bn)
+# Y3 = tf.layers.max_pooling2d(Y3r, 2, 2)
 
-YY = tf.reshape(Y3, shape=[-1, 8*8*M])
+Y4l = tf.nn.conv2d(Y3, W4, strides=[1, 2, 2, 1], padding='SAME')
+Y4bn, update_ema4 = batchnorm(Y4l, tst, iter, B4, convolutional=True)
+Y4 = tf.nn.relu(Y4bn)
+# Y4 = tf.layers.max_pooling2d(Y3r, 2, 2)
 
-Y4l = tf.matmul(YY, W4)
-Y4bn, update_ema4 = batchnorm(Y4l, tst, iter, B4)
-Y4r = tf.nn.relu(Y4bn)
-Y4 = tf.nn.dropout(Y4r, keep_prob)
+YY = tf.reshape(Y4, shape=[-1, 8*8*N])
 
-Y = tf.nn.softmax(tf.matmul(Y4, W5) + B5)
+Y5l = tf.matmul(YY, W5)
+Y5bn, update_ema5 = batchnorm(Y5l, tst, iter, B5)
+Y5r = tf.nn.relu(Y5bn)
+Y5 = tf.nn.dropout(Y5r, keep_prob)
 
-update_ema = tf.group(update_ema1, update_ema2, update_ema3, update_ema4)
+Y6l = tf.matmul(Y5, W6)
+Y6bn, update_ema6 = batchnorm(Y6l, tst, iter, B6)
+Y6r = tf.nn.relu(Y6bn)
+Y6 = tf.nn.dropout(Y6r, keep_prob)
+
+Y = tf.nn.softmax(tf.matmul(Y6, W7) + B7)
+
+update_ema = tf.group(update_ema1, update_ema2, \
+    update_ema3, update_ema4, update_ema5, update_ema6)
 
 # placeholder value for the ground truth label of the network
 Y_ = tf.placeholder(tf.float32, [None, 2])
@@ -202,11 +212,14 @@ Y_ = tf.placeholder(tf.float32, [None, 2])
 cross_entropy = \
     tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) \
-    + 0.09 * tf.nn.l2_loss(W1) \
-    + 0.09 * tf.nn.l2_loss(W2) \
-    + 0.09 * tf.nn.l2_loss(W3) \
-    + 0.09 * tf.nn.l2_loss(W4) \
-    + 0.09 * tf.nn.l2_loss(W5) \
+#    + 0.0000125 * tf.nn.l2_loss(W1) \
+#    + 0.0000125 * tf.nn.l2_loss(W2) \
+#    + 0.0000125 * tf.nn.l2_loss(W3) \
+#    + 0.0000125 * tf.nn.l2_loss(W4) \
+#    + 0.0000125 * tf.nn.l2_loss(W5) \
+#    + 0.0000125 * tf.nn.l2_loss(W6) \
+#    + 0.0000125 * tf.nn.l2_loss(W7) \
+# approximately 10(lambda)/80000(n of images)
 
 # % of correct answers found in batch
 is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
@@ -215,7 +228,7 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.0001
+start_learning_rate = 0.0005
 learning_rate = tf.maximum(0.00005, \
     tf.train.exponential_decay(
         start_learning_rate, global_step, 1000, 0.95, staircase=True))
@@ -256,14 +269,25 @@ with tf.name_scope("layer4"):
     tf.summary.histogram("bias", Y4)
 with tf.name_scope("layer5"):
     tf.summary.histogram("weights", W5)
-    tf.summary.histogram("predictions", Y)
+    tf.summary.histogram("predictions", Y5)
     tf.summary.histogram("bias", B5)
+with tf.name_scope("layer6"):
+    tf.summary.histogram("weights", W6)
+    tf.summary.histogram("predictions", Y6)
+    tf.summary.histogram("bias", B6)
+with tf.name_scope("layer7"):
+    tf.summary.histogram("weights", W7)
+    tf.summary.histogram("predictions", Y)
+    tf.summary.histogram("bias", B7)
 
 tf.summary.scalar('learning_rate', learning_rate)
 tf.summary.scalar('cross_entropy', cross_entropy)
 tf.summary.scalar('accuracy', accuracy)
 tf.summary.scalar('num_pos', num_pos)
-
+# tf.summary.scalar('moving average1', update_ema1)
+# tf.summary.scalar('moving average2', update_ema2)
+# tf.summary.scalar('moving average3', update_ema3)
+# tf.summary.scalar('moving average4', update_ema4)
 merged = tf.summary.merge_all()
 
 # validation accuracy
@@ -294,15 +318,43 @@ hists_test = \
 labels_test = \
     labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
-#finalize graph to cath memory leaks
+#finalize graph to catch memory leaks
 sess.graph.finalize()
+with tf.Graph().as_default():
+    tf.set_random_seed(42)
 
 ###################################3
 ###################################
 # make a sample to debug fast
 # p = np.random.permutation(len(hists_train))
-# hists_train = hists_train[p][0:2000]
-# labels_train = labels_train[p][0:2000]
+# hists_train = hists_train[p][0:3000]
+# labels_train = labels_train[p][0:3000]
+
+sometimes = lambda aug: iaa.Sometimes(0.5, aug)
+
+imgaug_seq = iaa.Sequential([
+    iaa.Sharpen(alpha=(0, 0.3), lightness=(0.75, 1.0)),
+    iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+    iaa.Fliplr(0.5), # horizontally flip 50% of the images
+    sometimes(iaa.Affine(
+            # scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis
+            # translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis)
+            rotate=(-45, 45), # rotate by -45 to +45 degrees
+            shear=(-16, 16), # shear by -16 to +16 degrees
+            order=[0, 1], # use nearest neighbour or bilinear interpolation (fast)
+            cval=(0, 255), # if mode is constant, use a cval between 0 and 255
+            mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples)
+    ))
+])
+
+# Use this to show augmented images
+# fig = plt.figure(figsize=(50, 50))  # width, height in inches
+# pos_idx = np.where(labels_train[:,]==1)[0]
+# tstimages = hists_train[pos_idx[0:64]]
+# for i in range(64):
+#     tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
+# tstimages = imgaug_seq.augment_images(tstimages)
+# misc.imshow(ia.draw_grid(tstimages, cols=8))
 
 for j in range(10000):
     #shuffle data in epochs
@@ -329,12 +381,14 @@ for j in range(10000):
     p = np.random.permutation(len(hists_epoch))
     hists_epoch = hists_epoch[p]
     labels_epoch = labels_epoch[p]
-    number_of_runs = int(np.floor(len(hists_epoch) / batch_size))
-
+    number_of_runs = np.ceil(len(hists_epoch) / batch_size)
     # test if train and test set are equaly divided
     # print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
     # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
-    for i in range(number_of_runs):
+    hists_epoch = imgaug_seq.augment_images(hists_epoch)
+    hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
+
+    for i in range(number_of_runs.astype(int)):
         batch_begin = int(i*batch_size)
         batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch)-1)))
 
@@ -347,7 +401,7 @@ for j in range(10000):
         train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
             tst: False, iter: i+j*number_of_runs}
 
-        if i % 1 == 0 and i > 0:
+        if i > -1:
             summary, weights, pred, batch_accuracy, batch_entropy = \
                 sess.run(
                     [merged, W5, Y, accuracy, cross_entropy],
@@ -376,9 +430,9 @@ for j in range(10000):
 
     # run the test in batches, the network is so large that there is not enough
     # memory for all the test data at once
-    number_of_runs = int(np.floor(len(hists_test) / batch_size))
+    number_of_runs = np.ceil(len(hists_test) / batch_size)
     test_accuracies = []
-    for i in range(number_of_runs):
+    for i in range(number_of_runs.astype(int)):
         batch_begin = int(i*batch_size)
         batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
 
