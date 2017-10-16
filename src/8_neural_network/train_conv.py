@@ -22,16 +22,12 @@ sys.path.append('../2_compare_detectors/')
 from train import filenames_for_participants
 from divide import divide_in
 
-write_cache = False
+load_images_from_cache = True
 random.seed(0)
 
-if write_cache:
-    hists = np.load("../3_svm_model/cached/train_cache_0.npy")
-    hists_test = np.load("../3_svm_model/cached/test_cache_0.npy")
-    labels = np.load("../3_svm_model/cached/train_cache_0_labels.npy")
-    labels_test = np.load("../3_svm_model/test_cache_0_labels.npy")
-
-    labels = labels[:, np.newaxis]
+if load_images_from_cache == False:
+    # get all participants in training set to create a per participant ..
+    # validation and test set.
     participants = []
     for root, dirnames, filenames in os.walk("../../images/train_set"):
         for filename in fnmatch.filter(filenames, '*.png'):
@@ -40,6 +36,9 @@ if write_cache:
                 participants.append(part)
     participants.sort()
 
+    # divide the participants in 5 parts (same as we used in the SVM k-fold 
+    # validation), then loop through the participants and get the filenames
+    # Subsequently the images are loaded and put into folds (k=5)
     participants_sliced = divide_in(participants, 5)
     folds = []
     for p in participants_sliced:
@@ -68,9 +67,9 @@ if write_cache:
 
         folds.append([images_pos, images_neg])
 
+    # Just like in the SVM training take the first fold as validation set (here 'test')
     train_set_pos = []
     train_set_neg = []
-
     test_set_pos = []
     test_set_neg = []
     for j, f_ in enumerate(folds):
@@ -81,31 +80,23 @@ if write_cache:
             train_set_pos += folds[j][0]
             train_set_neg += folds[j][1]
 
+    # Create a array with labels and concatenate the positive and negative images
+    # in one array (here wrongly called "hists"
     labels_train = np.zeros(len(train_set_pos)+len(train_set_neg))
     labels_train[len(train_set_neg)-1:] = 1
-
     hists_train = np.concatenate((train_set_neg, train_set_pos))
     print "Size of the original train data: " + str(hists_train.shape)
-    # images_aug = seq1.augment_images(hists_train)
-    # images1_aug = seq2.augment_images(np.concatenate((hists_train, images_aug)))
-    # hists_train = np.concatenate((hists_train, images_aug, images1_aug))
-    # labels_train = np.concatenate((labels_train, labels_train, labels_train, labels_train))
 
-    print "Size of the augmented train data: " + str(hists_train.shape)
-    print "Size of the augmented train labels: " + str(labels_train.shape)
-
-    # hists_train = hists_train/255.0-0.5
-    # hists_train = hists_train - np.mean(hists_train, axis=0)
-    # hists_train = hists_train / 255.0
-
+    # Do the same for test set, and normalize the test set
+    # Normalization of the training set is done after augmentation in the 
+    # training loop.
     labels_test = np.zeros(len(test_set_pos)+len(test_set_neg))
     labels_test[len(test_set_neg)-1:] = 1
-    # hists_test = np.concatenate((test_set_neg, test_set_pos))/255.0-0.5
     hists_test = np.concatenate((test_set_neg, test_set_pos))
-    # hists_test = hists_test - np.mean(hists_test, axis=0)
     hists_test = hists_test / 255.0 - 0.5
 
-    # one-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
+    # One-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
+    # For training this is done in the training loop
     labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
 
     np.save("hists_test", hists_test)
@@ -119,14 +110,20 @@ else:
     hists_train = np.load("hists_train.npy")
     labels_train = np.load("labels_train.npy")
 
-# depth in convolutional layers
-K = 24 # conv layer, depth = K, patchsize = 5, stride = 1
-L = 48 # conv layer, depth = L, patchsize = 4, stride = 2 so img=32
-M = 96 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
-N = 192 # conv layer, depth = M, patchsize = 4, stride = 2 so img=16
-O = 200 # fully connected layer 
-P = 200 # fully connected layer 
+############################################################################
+################## Placeholder variables
+############################################################################
 
+# Design of network:
+K = 24 # Conv layer, 3x3 patches, 1x1 stride
+L = 48 # Conv layer, 3x3 patches, 2x2 stride
+M = 96 # Conv layer, 3x3 patches, 2x2 stride
+N = 192 # Conv layer, 3x3 layer, 2x2 stride 
+O = 200 # Fully connected layer
+P = 200 # Fully connected layer
+# Softmax activation layer (n=2)
+
+# We use Xavier-like weight initialization (2/number_of_inputs)
 W1 = tf.Variable(tf.truncated_normal([3, 3, 3, K], stddev=2./(3*3*3)))
 B1 = tf.Variable(tf.zeros([K]))
 W2 = tf.Variable(tf.truncated_normal([3, 3, K, L], stddev=2./(3*3*3)))
@@ -135,6 +132,7 @@ W3 = tf.Variable(tf.truncated_normal([3, 3, L, M], stddev=2./(3*3*3)))
 B3 = tf.Variable(tf.zeros([M]))
 W4 = tf.Variable(tf.truncated_normal([3, 3, M, N], stddev=2./(3*3*3)))
 B4 = tf.Variable(tf.zeros([N]))
+# From the graphs it looks like the weight stdev is too low here
 W5 = tf.Variable(tf.truncated_normal([8 * 8 * N, O], stddev=2./(8*8*N)))
 B5 = tf.Variable(tf.zeros([O]))
 W6 = tf.Variable(tf.truncated_normal([O, P], stddev=2./O))
@@ -142,18 +140,26 @@ B6 = tf.Variable(tf.zeros([P]))
 W7 = tf.Variable(tf.truncated_normal([P, 2], stddev=2./P))
 B7 = tf.Variable(tf.zeros([2]))
 
-batch_size = 32 # of 64
+batch_size = 32
 keep_rate_dropout = 0.3
-
 keep_prob = tf.placeholder(tf.float32)
 
 # Input placeholder
 X = tf.placeholder(tf.float32, [None, 64, 64, 3])
 
+# Placeholder value for the ground truth label of the network
+Y_ = tf.placeholder(tf.float32, [None, 2])
+
+############################################################################
+############## Building of network
+############################################################################
+
 # test flag for batch norm
 tst = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
 
+# function from Martin Gorner (https://github.com/martin-gorner/tensorflow-mnist-
+# tutorial/blob/master/mnist_4.2_batchnorm_convolutional.py#L53)
 def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
     exp_moving_avg = tf.train.ExponentialMovingAverage(0.999, iteration)
     # adding the iteration prevents from averaging across non-existing iterations
@@ -205,13 +211,13 @@ Y = tf.nn.softmax(tf.matmul(Y6, W7) + B7)
 update_ema = tf.group(update_ema1, update_ema2, \
     update_ema3, update_ema4, update_ema5, update_ema6)
 
-# placeholder value for the ground truth label of the network
-Y_ = tf.placeholder(tf.float32, [None, 2])
+############################################################################
+# Loss function
 
-# loss function normalized for batchsize
 cross_entropy = \
     tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) \
+# Enable for L2 normalization
 #    + 0.0000125 * tf.nn.l2_loss(W1) \
 #    + 0.0000125 * tf.nn.l2_loss(W2) \
 #    + 0.0000125 * tf.nn.l2_loss(W3) \
@@ -219,13 +225,14 @@ cross_entropy = \
 #    + 0.0000125 * tf.nn.l2_loss(W5) \
 #    + 0.0000125 * tf.nn.l2_loss(W6) \
 #    + 0.0000125 * tf.nn.l2_loss(W7) \
-# approximately 10(lambda)/80000(n of images)
+# = approximately 1(lambda)/80000(n of images)
 
 # % of correct answers found in batch
 is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
 num_pos = tf.reduce_sum(tf.cast(tf.argmax(Y, 1), tf.float32))
 accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 
+############################################################################
 # training step
 global_step = tf.Variable(0, trainable=False)
 start_learning_rate = 0.0005
@@ -236,7 +243,9 @@ learning_rate = tf.maximum(0.00005, \
 train_step = tf.train.AdamOptimizer(learning_rate) \
     .minimize(cross_entropy, global_step=global_step, aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
+############################################################################
 # make a session
+
 init = tf.global_variables_initializer()
 sess = tf.Session()
 run_metadata = tf.RunMetadata()
@@ -249,8 +258,9 @@ tf.contrib.tfprof.model_analyzer.print_model_analysis(
     run_meta=run_metadata,
     tfprof_options=tf.contrib.tfprof.model_analyzer.PRINT_ALL_TIMING_MEMORY)
 
-########################
+############################################################################
 # logging to tensorboard
+
 with tf.name_scope("layer1"):
     tf.summary.histogram("weights", W1)
     tf.summary.histogram("activations", Y1)
@@ -293,14 +303,16 @@ merged = tf.summary.merge_all()
 # validation accuracy
 acc_summary = tf.summary.scalar('test_accuracy', accuracy)
 valid_summary_op = tf.summary.merge([acc_summary])
-########################
 
 # saving tensorboard logs
 now = datetime.datetime.time(datetime.datetime.now())
 date = now.strftime("%a %H:%M:%S")
 train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 
-# make a random test set of the data with 50% pos and 50% neg
+############################################################################
+# Make a random test set of the data with 50% pos and 50% neg
+# Preparation for training loop
+
 p = np.random.permutation(len(hists_test))
 labels_test_shuffled = labels_test[p]
 hists_test_shuffled = hists_test[p]
@@ -318,17 +330,20 @@ hists_test = \
 labels_test = \
     labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
-#finalize graph to catch memory leaks
+# Finalize graph to catch memory leaks (errors when changing the graph hereafter)
 sess.graph.finalize()
 with tf.Graph().as_default():
-    tf.set_random_seed(42)
+    tf.set_random_seed(42) # random seeding graph, not sure if this works
 
-###################################3
-###################################
+############################################################################
+
 # make a sample to debug fast
 # p = np.random.permutation(len(hists_train))
 # hists_train = hists_train[p][0:3000]
 # labels_train = labels_train[p][0:3000]
+
+############################################################################
+# Prepare data augmentation
 
 sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
@@ -356,35 +371,43 @@ imgaug_seq = iaa.Sequential([
 # tstimages = imgaug_seq.augment_images(tstimages)
 # misc.imshow(ia.draw_grid(tstimages, cols=8))
 
+############################################################################
+############## Training loop 
+############################################################################
+
 for j in range(10000):
-    #shuffle data in epochs
+    # Keep track of accuracy and entropy to calculate the average
     accuracies = []
     entropy = []
 
-    # make a random set of the data with 50% pos and 50% neg
+    # Make a random set of the data with 50% pos and 50% neg
     p = np.random.permutation(len(hists_train))
     hists_epoch = hists_train[p]
     labels_epoch = labels_train[p]
     neg_idx = np.where(labels_epoch[:,]==0)[0]
     pos_idx = np.where(labels_epoch[:,]==1)[0]
 
-    # limit size of pos (pos > neg)
+    # Limit size of negative or positive set (depending who is the largest)
     if neg_idx.shape[0] > pos_idx.shape[0]:
         neg_idx = neg_idx[0:pos_idx.shape[0]]
     else:
         pos_idx = pos_idx[0:neg_idx.shape[0]]
 
+    # Sets of images this epoch
     hists_epoch = hists_epoch[np.concatenate((pos_idx, neg_idx))]
     labels_epoch = labels_epoch[np.concatenate((pos_idx, neg_idx))]
 
-    # shuffle epoch data
+    # Shuffle epoch data
     p = np.random.permutation(len(hists_epoch))
     hists_epoch = hists_epoch[p]
     labels_epoch = labels_epoch[p]
     number_of_runs = np.ceil(len(hists_epoch) / batch_size)
-    # test if train and test set are equaly divided
+
+    # Test if train and test set are equaly divided
     # print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
     # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
+
+    # Augment the images and normalize
     hists_epoch = imgaug_seq.augment_images(hists_epoch)
     hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
 
@@ -395,9 +418,11 @@ for j in range(10000):
         batch_X = hists_epoch[batch_begin:batch_end]
         batch_Y = labels_epoch[batch_begin:batch_end]
 
-        # make one-hot array of labels
+        # Make one-hot array of labels
         batch_Y = np.squeeze(batch_Y)
         batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
+
+        # Ensemble the training data dict
         train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
             tst: False, iter: i+j*number_of_runs}
 
@@ -415,6 +440,7 @@ for j in range(10000):
             accuracies.append(batch_accuracy)
             entropy.append(batch_entropy)
 
+        # Actually perform the training step
         sess.run(train_step, feed_dict=train_data)
         sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
              tst: False, iter: i+j*number_of_runs})
@@ -428,7 +454,7 @@ for j in range(10000):
     print("Mean entropy of epoch  (" + str(j + 1) + "): "
         + str(mean_entropy))
 
-    # run the test in batches, the network is so large that there is not enough
+    # Run on the test in batches, the network is so large that there is not enough
     # memory for all the test data at once
     number_of_runs = np.ceil(len(hists_test) / batch_size)
     test_accuracies = []
@@ -448,13 +474,11 @@ for j in range(10000):
         test_accuracies.append(test_accuracy)
 
     mean_test_accuracy = np.mean(test_accuracies)
-    summary = tf.Summary(value=[
-        tf.Summary.Value(tag='test_accuracy', simple_value=mean_test_accuracy)])
+    summary = tf.Summary(
+        value=[tf.Summary.Value(tag='test_accuracy', \
+            simple_value=mean_test_accuracy)])
     train_writer.add_summary(summary, i+j*number_of_runs)
 
-    # print("Test accuracy of epoch (" + str(j + 1) + "): "
-    #     + str(mean_test_accuracy) + ", pos: " + str(test_num_pos)
-    #    + " / " + str(labels_test.shape[0]))
     print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
     print("")
 
