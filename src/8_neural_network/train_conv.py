@@ -22,8 +22,18 @@ sys.path.append('../2_compare_detectors/')
 from train import filenames_for_participants
 from divide import divide_in
 
+############################################## disable or enable training
+should_train = False
+if len(sys.argv) > 1 and sys.argv[1] == "train":
+    should_train = True
+    print "Will start training..."
+else:
+    print "Not training"
+#############################################
+
 load_images_from_cache = True
 random.seed(0)
+np.random.seed(0)
 
 if load_images_from_cache == False:
     # get all participants in training set to create a per participant ..
@@ -236,7 +246,7 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 ############################################################################
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.0005
+start_learning_rate = 0.00025
 learning_rate = tf.maximum(0.00005, \
     tf.train.exponential_decay(
         start_learning_rate, global_step, 1000, 0.95, staircase=True))
@@ -246,18 +256,26 @@ train_step = tf.train.AdamOptimizer(start_learning_rate) \
 
 ############################################################################
 # make a session
+if should_train:
+    config = tf.ConfigProto(device_count = {'GPU': 1})
+else:
+    config = tf.ConfigProto(device_count = {'GPU': 0})
 
 init = tf.global_variables_initializer()
-sess = tf.Session()
-run_metadata = tf.RunMetadata()
-sess.run(init, options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE), run_metadata=run_metadata)
+sess = tf.Session(config=config)
+
+# run_metadata = tf.RunMetadata()
+sess.run(init)
+# sess.run(init, options=tf.RunOptions(trace_level=tf.RunOptions.FULL_TRACE), run_metadata=run_metadata)
 
 # Print to stdout an analysis of the memory usage and the timing information
 # from running the graph broken down by operations.
-tf.contrib.tfprof.model_analyzer.print_model_analysis(
-    tf.get_default_graph(),
-    run_meta=run_metadata,
-    tfprof_options=tf.contrib.tfprof.model_analyzer.PRINT_ALL_TIMING_MEMORY)
+# tf.contrib.tfprof.model_analyzer.print_model_analysis(
+#     tf.get_default_graph(),
+#     run_meta=run_metadata,
+#     tfprof_options=tf.contrib.tfprof.model_analyzer.PRINT_ALL_TIMING_MEMORY)
+
+saver = tf.train.Saver(max_to_keep=500)
 
 ############################################################################
 # logging to tensorboard
@@ -311,34 +329,6 @@ date = now.strftime("%a %H:%M:%S")
 train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 
 ############################################################################
-# Make a random test set of the data with 50% pos and 50% neg
-# Preparation for training loop
-
-p = np.random.permutation(len(hists_test))
-labels_test_shuffled = labels_test[p]
-hists_test_shuffled = hists_test[p]
-neg_test_idx = np.where(labels_test_shuffled[:,1]==0)[0]
-pos_test_idx = np.where(labels_test_shuffled[:,1]==1)[0]
-
-# limit size of positive set (pos > neg)
-if pos_test_idx.shape[0] > neg_test_idx.shape[0]:
-    pos_test_idx = pos_test_idx[0:neg_test_idx.shape[0]]
-else:
-    neg_test_idx = neg_test_idx[0:pos_test_idx.shape[0]]
-
-hists_test = \
-    hists_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
-labels_test = \
-    labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
-
-saver = tf.train.Saver()
-
-# Finalize graph to catch memory leaks (errors when changing the graph hereafter)
-sess.graph.finalize()
-with tf.Graph().as_default():
-    tf.set_random_seed(42) # random seeding graph, not sure if this works
-
-############################################################################
 
 # make a sample to debug fast
 # p = np.random.permutation(len(hists_train))
@@ -378,117 +368,219 @@ imgaug_seq = iaa.Sequential([
 ############## Training loop 
 ############################################################################
 
+if should_train:
+    current_best = 0.9
+    model_name = "./models/conv_epoch_540.ckpt" # after 540 epochs with 0.0005
+    saver.restore(sess, model_name)
+    print("Model restored.")
 
-for j in range(10000):
-    # Keep track of accuracy and entropy to calculate the average
-    accuracies = []
-    entropy = []
+    ############################################################################
+    # Make a random test set of the data with 50% pos and 50% neg
+    # Preparation for training loop
+    p = np.random.permutation(len(hists_test))
+    labels_test_shuffled = labels_test[p]
+    hists_test_shuffled = hists_test[p]
+    neg_test_idx = np.where(labels_test_shuffled[:,1]==0)[0]
+    pos_test_idx = np.where(labels_test_shuffled[:,1]==1)[0]
 
-    # Make a random set of the data with 50% pos and 50% neg
-    p = np.random.permutation(len(hists_train))
-    hists_epoch = hists_train[p]
-    labels_epoch = labels_train[p]
-    neg_idx = np.where(labels_epoch[:,]==0)[0]
-    pos_idx = np.where(labels_epoch[:,]==1)[0]
-
-    # Limit size of negative or positive set (depending who is the largest)
-    if neg_idx.shape[0] > pos_idx.shape[0]:
-        neg_idx = neg_idx[0:pos_idx.shape[0]]
+    # limit size of positive set (pos > neg)
+    if pos_test_idx.shape[0] > neg_test_idx.shape[0]:
+        pos_test_idx = pos_test_idx[0:neg_test_idx.shape[0]]
     else:
-        pos_idx = pos_idx[0:neg_idx.shape[0]]
+        neg_test_idx = neg_test_idx[0:pos_test_idx.shape[0]]
 
-    # Sets of images this epoch
-    hists_epoch = hists_epoch[np.concatenate((pos_idx, neg_idx))]
-    labels_epoch = labels_epoch[np.concatenate((pos_idx, neg_idx))]
+    hists_test = \
+        hists_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
+    labels_test = \
+        labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
-    # Shuffle epoch data
-    p = np.random.permutation(len(hists_epoch))
-    hists_epoch = hists_epoch[p]
-    labels_epoch = labels_epoch[p]
-    number_of_runs = np.ceil(len(hists_epoch) / batch_size)
+    # Finalize graph to catch memory leaks (errors when changing the graph hereafter)
+    sess.graph.finalize()
+    with tf.Graph().as_default():
+        tf.set_random_seed(42) # random seeding graph, not sure if this works
 
-    # Test if train and test set are equaly divided
-    # print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
-    # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
+    for j in range(10000):
+        # Keep track of accuracy and entropy to calculate the average
+        accuracies = []
+        entropy = []
 
-    # Augment the images and normalize
-    hists_epoch = imgaug_seq.augment_images(hists_epoch)
-    hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
+        # Make a random set of the data with 50% pos and 50% neg
+        p = np.random.permutation(len(hists_train))
+        hists_epoch = hists_train[p]
+        labels_epoch = labels_train[p]
+        neg_idx = np.where(labels_epoch[:,]==0)[0]
+        pos_idx = np.where(labels_epoch[:,]==1)[0]
 
-    for i in range(number_of_runs.astype(int)):
-        batch_begin = int(i*batch_size)
-        batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch)-1)))
+        # Limit size of negative or positive set (depending who is the largest)
+        if neg_idx.shape[0] > pos_idx.shape[0]:
+            neg_idx = neg_idx[0:pos_idx.shape[0]]
+        else:
+            pos_idx = pos_idx[0:neg_idx.shape[0]]
 
-        batch_X = hists_epoch[batch_begin:batch_end]
-        batch_Y = labels_epoch[batch_begin:batch_end]
+        # Sets of images this epoch
+        hists_epoch = hists_epoch[np.concatenate((pos_idx, neg_idx))]
+        labels_epoch = labels_epoch[np.concatenate((pos_idx, neg_idx))]
 
-        # Make one-hot array of labels
-        batch_Y = np.squeeze(batch_Y)
-        batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
+        # Shuffle epoch data
+        p = np.random.permutation(len(hists_epoch))
+        hists_epoch = hists_epoch[p]
+        labels_epoch = labels_epoch[p]
+        number_of_runs = np.ceil(len(hists_epoch) / batch_size)
 
-        # Ensemble the training data dict
-        train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
-            tst: False, iter: i+j*number_of_runs}
+        # Test if train and test set are equaly divided
+        # print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
+        # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
 
-        if i > -1:
-            summary, weights, pred, batch_accuracy, batch_entropy = \
+        # Augment the images and normalize
+        hists_epoch = imgaug_seq.augment_images(hists_epoch)
+        hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
+
+        for i in range(number_of_runs.astype(int)):
+            batch_begin = int(i*batch_size)
+            batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch)-1)))
+
+            batch_X = hists_epoch[batch_begin:batch_end]
+            batch_Y = labels_epoch[batch_begin:batch_end]
+
+            # Make one-hot array of labels
+            batch_Y = np.squeeze(batch_Y)
+            batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
+
+            # Ensemble the training data dict
+            train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
+                tst: False, iter: i+j*number_of_runs}
+
+            if i % 50 == 0:
+                summary, weights, pred, batch_accuracy, batch_entropy = \
+                    sess.run(
+                        [merged, W5, Y, accuracy, cross_entropy],
+                        feed_dict=train_data)
+
+                # if j > 1:
+                #     print np.sum(weights-weights_old)
+                # weights_old = weights
+
+                train_writer.add_summary(summary, i+j*number_of_runs)
+                accuracies.append(batch_accuracy)
+                entropy.append(batch_entropy)
+
+            # Actually perform the training step
+            sess.run(train_step, feed_dict=train_data)
+            sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+                 tst: False, iter: i+j*number_of_runs})
+
+        # Take the mean of you measure
+        mean_accuracy = np.mean(accuracies)
+        mean_entropy = np.mean(entropy)
+
+        print("Mean accuracy of epoch (" + str(j + 1) + "): "
+            + str(mean_accuracy))
+        print("Mean entropy of epoch  (" + str(j + 1) + "): "
+            + str(mean_entropy))
+
+        # Run on the test in batches, the network is so large that there is not enough
+        # memory for all the test data at once
+        number_of_runs = np.ceil(len(hists_test) / batch_size)
+        test_accuracies = []
+        for i in range(number_of_runs.astype(int)):
+            batch_begin = int(i*batch_size)
+            batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
+
+            batch_X = hists_test[batch_begin:batch_end]
+            batch_Y = labels_test[batch_begin:batch_end]
+
+            test_num_pos, test_pred, test_accuracy, test_summary = \
                 sess.run(
-                    [merged, W5, Y, accuracy, cross_entropy],
-                    feed_dict=train_data)
+                    [num_pos, Y, accuracy, valid_summary_op],
+                    feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+                        tst: True, iter: i+j*number_of_runs})
 
-            # if j > 1:
-            #     print np.sum(weights-weights_old)
-            # weights_old = weights
+            test_accuracies.append(test_accuracy)
 
-            train_writer.add_summary(summary, i+j*number_of_runs)
-            accuracies.append(batch_accuracy)
-            entropy.append(batch_entropy)
+        mean_test_accuracy = np.mean(test_accuracies)
+        summary = tf.Summary(
+            value=[tf.Summary.Value(tag='test_accuracy', \
+                simple_value=mean_test_accuracy)])
+        train_writer.add_summary(summary, i+j*number_of_runs)
 
-        # Actually perform the training step
-        sess.run(train_step, feed_dict=train_data)
-        sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-             tst: False, iter: i+j*number_of_runs})
+        print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
+        print("")
 
-    # Take the mean of you measure
-    mean_accuracy = np.mean(accuracies)
-    mean_entropy = np.mean(entropy)
+        if j % 5 == 0:
+            save_path = saver.save(sess, "./models/conv3_epoch_" + str(j) + ".ckpt")
+            print("Model saved in file: %s" % save_path)
+        if mean_test_accuracy > current_best:
+            save_path = saver.save(sess, "./models/conv3_epoch_best_" + str(j) + ".ckpt")
+            print("Best model saved in file: %s" % save_path)
+            current_best = mean_test_accuracy
+else :
+    model_name = "./models/conv2_epoch_90.ckpt" # "./models/conv_epoch_540.ckpt"
+    saver.restore(sess, model_name)
+    print("Model restored.")
 
-    print("Mean accuracy of epoch (" + str(j + 1) + "): "
-        + str(mean_accuracy))
-    print("Mean entropy of epoch  (" + str(j + 1) + "): "
-        + str(mean_entropy))
+    for i in range(1):
+        # Run on the test in batches, the network is so large that there is not enough
+        # memory for all the test data at once
+        pred_labels = []
+        number_of_runs = np.ceil(len(hists_test) / batch_size) + 1
+        test_accuracies = []
+        for i in range(number_of_runs.astype(int)):
+            batch_begin = int(i*batch_size)
+            batch_end = int(np.min((i*batch_size+batch_size, len(hists_test))))
 
-    # Run on the test in batches, the network is so large that there is not enough
-    # memory for all the test data at once
-    number_of_runs = np.ceil(len(hists_test) / batch_size)
-    test_accuracies = []
-    for i in range(number_of_runs.astype(int)):
-        batch_begin = int(i*batch_size)
-        batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
+            batch_X = hists_test[batch_begin:batch_end]
+            batch_Y = labels_test[batch_begin:batch_end]
 
-        batch_X = hists_test[batch_begin:batch_end]
-        batch_Y = labels_test[batch_begin:batch_end]
+            test_pred = \
+                sess.run(
+                    [Y],
+                    feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+                        tst: True, iter: i})
 
-        test_num_pos, test_pred, test_accuracy, test_summary = \
-            sess.run(
-                [num_pos, Y, accuracy, valid_summary_op],
-                feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-                    tst: True, iter: i+j*number_of_runs})
+            pred_labels += test_pred
 
-        test_accuracies.append(test_accuracy)
+        pred_labels = np.concatenate(pred_labels)
 
-    mean_test_accuracy = np.mean(test_accuracies)
-    summary = tf.Summary(
-        value=[tf.Summary.Value(tag='test_accuracy', \
-            simple_value=mean_test_accuracy)])
-    train_writer.add_summary(summary, i+j*number_of_runs)
+        pred_pos = (np.argmax(pred_labels, axis=1)==0)
+        pred_neg = (np.argmax(pred_labels, axis=1)==1)
 
-    print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
-    print("")
+        truth_pos = (np.argmax(labels_test, axis=1)==0)
+        truth_neg = (np.argmax(labels_test, axis=1)==1)
+        true_pos = np.intersect1d(np.where(pred_pos), np.where(truth_pos))
+        true_neg = np.intersect1d(np.where(pred_neg), np.where(truth_neg))
+        false_pos = np.intersect1d(np.where(pred_pos), np.where(truth_neg))
+        false_neg = np.intersect1d(np.where(pred_neg), np.where(truth_pos))
 
-    if j % 5 == 0:
-        save_path = saver.save(sess, "./models/conv_epoch_" + str(j) + ".ckpt")
-        print("Model saved in file: %s" % save_path)
+        # confident_neg = hists_test[pred_labels[:,0].argsort()][0:64]
+        # confident_pos = hists_test[pred_labels[:,1].argsort()][0:64]
+
+        # non_confident_pos = hists_test[pred_labels[:,0] > 0.5][pred_labels[pred_labels[:,0] > 0.5][:,0].argsort()][0:64]
+        # non_confident_neg = hists_test[pred_labels[:,1] > 0.5][pred_labels[pred_labels[:,1] > 0.5][:,0].argsort()][0:64]
+        tstimages = (hists_test[false_pos][0:182] + 0.5) * 255.0
+        fig = plt.figure(figsize=(64, 64))  # width, height in inches
+        tstimages = (hists_test[false_neg][0:182] + 0.5) * 255.0
+        for i in range(182):
+            tstimages[i] = cv2.cvtColor(tstimages[i].astype(np.float32), cv2.COLOR_BGR2RGB)
+        misc.imshow(ia.draw_grid(tstimages, cols=13, rows=14))
+
+        # fig = plt.figure(figsize=(64, 64))  # width, height in inches
+        # tstimages = (non_confident_pos + 0.5) * 255.0
+        # for i in range(64):
+        #     tstimages[i] = cv2.cvtColor(tstimages[i].astype(np.float32), cv2.COLOR_BGR2RGB)
+        # misc.imshow(ia.draw_grid(tstimages, cols=8))
+
+        sens = len(true_pos) / float(len(true_pos) + len(false_neg))
+        spec = len(true_neg) / float(len(true_neg) + len(false_pos))
+        ppv = len(true_pos) / float(len(true_pos) + len(false_pos))
+        npv = len(true_neg) / float(len(true_neg) + len(false_neg))
+
+        print "Sensitivity: " + str(sens)
+        print "Specifitity: " + str(spec)
+        print "Positive predictive value: " + str(ppv)
+        print "N false pos: " + str(len(false_pos))
+        print "N false neg: " + str(len(false_neg))
+        # false_pos = np.sum(pred_labels[:,0] == test_labels[:,0])
+        # true_neg = np.sum(pred_labels[:,1] test_labels[:,1])
 
 # first model
 ## depth in convolutional layers
