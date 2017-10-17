@@ -125,12 +125,12 @@ else:
 ############################################################################
 
 # Design of network:
-K = 24 # Conv layer, 3x3 patches, 1x1 stride
-L = 48 # Conv layer, 3x3 patches, 2x2 stride
-M = 96 # Conv layer, 3x3 patches, 2x2 stride
-N = 192 # Conv layer, 3x3 layer, 2x2 stride 
-O = 200 # Fully connected layer
-P = 200 # Fully connected layer
+K = 36 # Conv layer, 3x3 patches, 1x1 stride
+L = 72 # Conv layer, 3x3 patches, 2x2 stride
+M = 144 # Conv layer, 3x3 patches, 2x2 stride
+N = 288 # Conv layer, 3x3 layer, 2x2 stride 
+O = 500 # Fully connected layer
+P = 500 # Fully connected layer
 # Softmax activation layer (n=2)
 
 # We use Xavier-like weight initialization (2/number_of_inputs)
@@ -172,7 +172,7 @@ iter = tf.placeholder(tf.int32)
 # function from Martin Gorner (https://github.com/martin-gorner/tensorflow-mnist-
 # tutorial/blob/master/mnist_4.2_batchnorm_convolutional.py#L53)
 def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
-    exp_moving_avg = tf.train.ExponentialMovingAverage(0.9, iteration) # 0.999
+    exp_moving_avg = tf.train.ExponentialMovingAverage(0.999, iteration)
     # adding the iteration prevents from averaging across non-existing iterations
     bnepsilon = 1e-5
     if convolutional:
@@ -225,9 +225,11 @@ update_ema = tf.group(update_ema1, update_ema2, \
 ############################################################################
 # Loss function
 
-cross_entropy = \
-    tf.reduce_mean(
-        tf.nn.softmax_cross_entropy_with_logits(labels=Y_, logits=Y)) \
+cross_entropy = tf.reduce_mean(
+    tf.nn.weighted_cross_entropy_with_logits(
+        targets=Y_[:,1], logits=Y[:,1], pos_weight=3))
+# this values 
+
 # Enable for L2 normalization
 #    + 0.0000125 * tf.nn.l2_loss(W1) \
 #    + 0.0000125 * tf.nn.l2_loss(W2) \
@@ -242,17 +244,23 @@ cross_entropy = \
 is_correct = tf.equal(tf.argmax(Y, 1), tf.argmax(Y_, 1))
 num_pos = tf.reduce_sum(tf.cast(tf.argmax(Y, 1), tf.float32))
 accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
+# Model saved in file: ./models/big_conv_epoch_60.ckpt
+# Best model saved in file: ./models/big_conv_epoch_best_60.ckpt
+
 
 ############################################################################
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.00005
-learning_rate = tf.maximum(0.00005, \
-    tf.train.exponential_decay(
-        start_learning_rate, global_step, 1000, 0.95, staircase=True))
+start_learning_rate = 0.001
+learning_rate = tf.cond(tf.less(global_step, 2500), \
+    lambda:0.0001, \
+    lambda:tf.maximum(0.00005, \
+        tf.train.exponential_decay(
+            start_learning_rate, global_step, 1000000, 0.90, staircase=True)))
 
-train_step = tf.train.AdamOptimizer(start_learning_rate) \
-    .minimize(cross_entropy, global_step=global_step, aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
+train_step = tf.train.AdamOptimizer(learning_rate) \
+    .minimize(cross_entropy, global_step=global_step, \
+        aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
 ############################################################################
 # make a session
@@ -332,8 +340,8 @@ train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 
 # make a sample to debug fast
 # p = np.random.permutation(len(hists_train))
-# hists_train = hists_train[p][0:3000]
-# labels_train = labels_train[p][0:3000]
+# hists_train = hists_train[p][0:2000]
+# labels_train = labels_train[p][0:2000]
 
 ############################################################################
 # Prepare data augmentation
@@ -341,8 +349,14 @@ train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
 imgaug_seq = iaa.Sequential([
-    iaa.Sharpen(alpha=(0, 0.3), lightness=(0.75, 1.0)),
-    iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+    iaa.OneOf([
+        iaa.Sharpen(alpha=(0, 0.3), lightness=(0.75, 1.0)),
+        iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+        iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
+    ]),
+    sometimes(
+        iaa.Add((-100, 100), per_channel=0.5), # change brightness of images (by -10 to 10 of original value)
+    ),
     iaa.Fliplr(0.5), # horizontally flip 50% of the images
     sometimes(iaa.Affine(
             # scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis
@@ -369,10 +383,10 @@ imgaug_seq = iaa.Sequential([
 ############################################################################
 
 if should_train:
-    current_best = 0.9
-    model_name = "./models/conv_epoch_540.ckpt" # after 540 epochs with 0.0005, conv Mon 14:49:31
-    saver.restore(sess, model_name)
-    print("Model restored.")
+    current_best = 0.0
+    # model_name = "./models/conv_epoch_540.ckpt" # after 540 epochs with 0.0005, conv Mon 14:49:31
+    # saver.restore(sess, model_name)
+    # print("Model restored.")
 
     ############################################################################
     # Make a random test set of the data with 50% pos and 50% neg
@@ -450,7 +464,7 @@ if should_train:
             train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
                 tst: False, iter: i+j*number_of_runs}
 
-            if i % 100 == 0:
+            if i % 25 == 0:
                 summary, weights, pred, batch_accuracy, batch_entropy = \
                     sess.run(
                         [merged, W5, Y, accuracy, cross_entropy],
@@ -482,6 +496,7 @@ if should_train:
         # memory for all the test data at once
         number_of_runs = np.ceil(len(hists_test) / batch_size)
         test_accuracies = []
+        pred_labels = np.empty([0,2])
         for i in range(number_of_runs.astype(int)):
             batch_begin = int(i*batch_size)
             batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
@@ -496,6 +511,29 @@ if should_train:
                         tst: True, iter: i+j*number_of_runs})
 
             test_accuracies.append(test_accuracy)
+            pred_labels = np.concatenate((pred_labels, test_pred))
+
+        # pred_labels = np.concatenate(pred_labels)
+
+        pred_pos = (np.argmax(pred_labels, axis=1)==0)
+        pred_neg = (np.argmax(pred_labels, axis=1)==1)
+
+        truth_pos = (np.argmax(labels_test, axis=1)==0)
+        truth_neg = (np.argmax(labels_test, axis=1)==1)
+
+        true_pos = np.intersect1d(np.where(pred_pos), np.where(truth_pos))
+        true_neg = np.intersect1d(np.where(pred_neg), np.where(truth_neg))
+        false_pos = np.intersect1d(np.where(pred_pos), np.where(truth_neg))
+        false_neg = np.intersect1d(np.where(pred_neg), np.where(truth_pos))
+
+        sens = len(true_pos) / float(len(true_pos) + len(false_neg) + 0.00001)
+        spec = len(true_neg) / float(len(true_neg) + len(false_pos) + 0.00001)
+        ppv = len(true_pos) / float(len(true_pos) + len(false_pos) + 0.00001)
+        npv = len(true_neg) / float(len(true_neg) + len(false_neg) + 0.00001)
+
+        print "Test sensitivity: " + str(sens)
+        print "Test specifitity: " + str(spec)
+        print "Test positive predictive value: " + str(ppv)
 
         mean_test_accuracy = np.mean(test_accuracies)
         summary = tf.Summary(
@@ -504,16 +542,18 @@ if should_train:
         train_writer.add_summary(summary, i+j*number_of_runs)
 
         print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
-        print("")
 
         if j % 5 == 0:
-            save_path = saver.save(sess, "./models/conv3_epoch_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/big_conv_epoch2_" + str(j) + ".ckpt")
             print("Model saved in file: %s" % save_path)
         if mean_test_accuracy > current_best:
-            save_path = saver.save(sess, "./models/conv3_epoch_best_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/big_conv_epoch2_best_" + str(j) + ".ckpt")
             print("Best model saved in file: %s" % save_path)
             current_best = mean_test_accuracy
-else :
+
+        print("")
+
+else:
     model_name = "./models/conv2_epoch_90.ckpt" # "./models/conv_epoch_540.ckpt"
     saver.restore(sess, model_name)
     print("Model restored.")
