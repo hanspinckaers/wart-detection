@@ -124,6 +124,7 @@ P = 200 # Fully connected layer
 # Softmax activation layer (n=2)
 
 # We use Xavier-like weight initialization (2/number_of_inputs)
+# http://andyljones.tumblr.com/post/110998971763/an-explanation-of-xavier-initialization
 W1 = tf.Variable(tf.truncated_normal([3, 3, 3, K], stddev=2./(3*3*3)))
 B1 = tf.Variable(tf.zeros([K]))
 W2 = tf.Variable(tf.truncated_normal([3, 3, K, L], stddev=2./(3*3*3)))
@@ -240,7 +241,7 @@ learning_rate = tf.maximum(0.00005, \
     tf.train.exponential_decay(
         start_learning_rate, global_step, 1000, 0.95, staircase=True))
 
-train_step = tf.train.AdamOptimizer(learning_rate) \
+train_step = tf.train.AdamOptimizer(start_learning_rate) \
     .minimize(cross_entropy, global_step=global_step, aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
 ############################################################################
@@ -330,6 +331,8 @@ hists_test = \
 labels_test = \
     labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
+saver = tf.train.Saver()
+
 # Finalize graph to catch memory leaks (errors when changing the graph hereafter)
 sess.graph.finalize()
 with tf.Graph().as_default():
@@ -374,6 +377,7 @@ imgaug_seq = iaa.Sequential([
 ############################################################################
 ############## Training loop 
 ############################################################################
+
 
 for j in range(10000):
     # Keep track of accuracy and entropy to calculate the average
@@ -482,11 +486,9 @@ for j in range(10000):
     print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
     print("")
 
-
-# Create a saver object which will save all the variables
-saver = tf.train.Saver()
-save_path = saver.save(sess, "./models/conv3.ckpt")
-print("Model saved in file: %s" % save_path)
+    if j % 5 == 0:
+        save_path = saver.save(sess, "./models/conv_epoch_" + str(j) + ".ckpt")
+        print("Model saved in file: %s" % save_path)
 
 # first model
 ## depth in convolutional layers
