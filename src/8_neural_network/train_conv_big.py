@@ -167,6 +167,7 @@ Y_ = tf.placeholder(tf.float32, [None, 2])
 
 # test flag for batch norm
 tst = tf.placeholder(tf.bool)
+tst_conv = tf.placeholder(tf.bool)
 iter = tf.placeholder(tf.int32)
 
 # function from Martin Gorner (https://github.com/martin-gorner/tensorflow-mnist-
@@ -186,22 +187,22 @@ def batchnorm(Ylogits, is_test, iteration, offset, convolutional=False):
     return Ybn, update_moving_averages
 
 Y1l = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME')
-Y1bn, update_ema1 = batchnorm(Y1l, tst, iter, B1, convolutional=True)
+Y1bn, update_ema1 = batchnorm(Y1l, tst_conv, iter, B1, convolutional=True)
 Y1 = tf.nn.relu(Y1bn)
 # Y1 = tf.layers.max_pooling2d(Y1r, 2, 2)
 
 Y2l = tf.nn.conv2d(Y1, W2, strides=[1, 2, 2, 1], padding='SAME')
-Y2bn, update_ema2 = batchnorm(Y2l, tst, iter, B2, convolutional=True)
+Y2bn, update_ema2 = batchnorm(Y2l, tst_conv, iter, B2, convolutional=True)
 Y2 = tf.nn.relu(Y2bn)
 #Y2 = tf.layers.max_pooling2d(Y2r, 2, 2)
 
 Y3l = tf.nn.conv2d(Y2, W3, strides=[1, 2, 2, 1], padding='SAME')
-Y3bn, update_ema3 = batchnorm(Y3l, tst, iter, B3, convolutional=True)
+Y3bn, update_ema3 = batchnorm(Y3l, tst_conv, iter, B3, convolutional=True)
 Y3 = tf.nn.relu(Y3bn)
 # Y3 = tf.layers.max_pooling2d(Y3r, 2, 2)
 
 Y4l = tf.nn.conv2d(Y3, W4, strides=[1, 2, 2, 1], padding='SAME')
-Y4bn, update_ema4 = batchnorm(Y4l, tst, iter, B4, convolutional=True)
+Y4bn, update_ema4 = batchnorm(Y4l, tst_conv, iter, B4, convolutional=True)
 Y4 = tf.nn.relu(Y4bn)
 # Y4 = tf.layers.max_pooling2d(Y3r, 2, 2)
 
@@ -256,9 +257,9 @@ learning_rate = tf.cond(tf.less(global_step, 2500), \
     lambda:0.0001, \
     lambda:tf.maximum(0.00005, \
         tf.train.exponential_decay(
-            start_learning_rate, global_step, 1000000, 0.90, staircase=True)))
+            start_learning_rate, global_step, 10000, 0.75, staircase=True)))
 
-train_step = tf.train.AdamOptimizer(learning_rate) \
+train_step = tf.train.AdamOptimizer(0.0001) \
     .minimize(cross_entropy, global_step=global_step, \
         aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
@@ -283,7 +284,7 @@ sess.run(init)
 #     run_meta=run_metadata,
 #     tfprof_options=tf.contrib.tfprof.model_analyzer.PRINT_ALL_TIMING_MEMORY)
 
-saver = tf.train.Saver(max_to_keep=500)
+saver = tf.train.Saver(max_to_keep=10000)
 
 ############################################################################
 # logging to tensorboard
@@ -351,32 +352,32 @@ sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 imgaug_seq = iaa.Sequential([
     iaa.OneOf([
         iaa.Sharpen(alpha=(0, 0.3), lightness=(0.75, 1.0)),
-        iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0
+        iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0 
         iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
     ]),
     sometimes(
-        iaa.Add((-100, 100), per_channel=0.5), # change brightness of images (by -10 to 10 of original value)
+        iaa.Add((-100, 100), per_channel=0.5), # change brightness of images (by -10 to 10 of original value) 
     ),
-    iaa.Fliplr(0.5), # horizontally flip 50% of the images
+    iaa.Fliplr(0.5), # horizontally flip 50% of the images 
     sometimes(iaa.Affine(
-            # scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis
-            # translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis)
-            rotate=(-45, 45), # rotate by -45 to +45 degrees
-            shear=(-16, 16), # shear by -16 to +16 degrees
-            order=[0, 1], # use nearest neighbour or bilinear interpolation (fast)
-            cval=(0, 255), # if mode is constant, use a cval between 0 and 255
-            mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples)
+            # scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis 
+            # translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis) 
+            rotate=(-45, 45), # rotate by -45 to +45 degrees 
+            shear=(-16, 16), # shear by -16 to +16 degrees 
+            order=[0, 1], # use nearest neighbour or bilinear interpolation (fast) 
+            cval=(0, 255), # if mode is constant, use a cval between 0 and 255 
+            mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples) 
     ))
 ])
 
 # Use this to show augmented images
-# fig = plt.figure(figsize=(50, 50))  # width, height in inches
-# pos_idx = np.where(labels_train[:,]==1)[0]
-# tstimages = hists_train[pos_idx[0:64]]
-# for i in range(64):
-#     tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
-# tstimages = imgaug_seq.augment_images(tstimages)
-# misc.imshow(ia.draw_grid(tstimages, cols=8))
+fig = plt.figure(figsize=(50, 50))  # width, height in inches
+pos_idx = np.where(labels_train[:,]==1)[0]
+tstimages = hists_train[pos_idx[0:64]]
+for i in range(64):
+    tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
+tstimages = imgaug_seq.augment_images(tstimages)
+misc.imshow(ia.draw_grid(tstimages, cols=8))
 
 ############################################################################
 ############## Training loop 
@@ -384,7 +385,15 @@ imgaug_seq = iaa.Sequential([
 
 if should_train:
     current_best = 0.0
-    # model_name = "./models/conv_epoch_540.ckpt" # after 540 epochs with 0.0005, conv Mon 14:49:31
+    # Mean accuracy of epoch (766): 0.895221
+    # Mean entropy of epoch  (766): 0.903323
+    # Test sensitivity: 0.823886635507
+    # Test specifitity: 0.956827304434
+    # Test positive predictive value: 0.949824965287
+    # Test accuracy of epoch (766): 0.890625
+    # Model saved in file: ./models/big_conv_overnight_epoch_765.ckpt
+
+    # model_name = "./models/big_conv_overnight_epoch_765.ckpt" # after 765 epochs with 0.0005, conv Mon 17:21:49 
     # saver.restore(sess, model_name)
     # print("Model restored.")
 
@@ -462,7 +471,7 @@ if should_train:
 
             # Ensemble the training data dict
             train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
-                tst: False, iter: i+j*number_of_runs}
+                tst: False, iter: i+j*number_of_runs, tst_conv: False}
 
             if i % 25 == 0:
                 summary, weights, pred, batch_accuracy, batch_entropy = \
@@ -481,7 +490,7 @@ if should_train:
             # Actually perform the training step
             sess.run(train_step, feed_dict=train_data)
             sess.run(update_ema, {X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-                 tst: False, iter: i+j*number_of_runs})
+                 tst: False, iter: i+j*number_of_runs, tst_conv: False})
 
         # Take the mean of you measure
         mean_accuracy = np.mean(accuracies)
@@ -508,7 +517,7 @@ if should_train:
                 sess.run(
                     [num_pos, Y, accuracy, valid_summary_op],
                     feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-                        tst: True, iter: i+j*number_of_runs})
+                        tst: True, iter: i+j*number_of_runs, tst_conv: True})
 
             test_accuracies.append(test_accuracy)
             pred_labels = np.concatenate((pred_labels, test_pred))
@@ -544,17 +553,17 @@ if should_train:
         print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
 
         if j % 5 == 0:
-            save_path = saver.save(sess, "./models/big_conv_epoch2_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/big_conv_overnight_epoch_" + str(j) + ".ckpt")
             print("Model saved in file: %s" % save_path)
         if mean_test_accuracy > current_best:
-            save_path = saver.save(sess, "./models/big_conv_epoch2_best_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/big_conv_overnight_epoch2_best_" + str(j) + ".ckpt")
             print("Best model saved in file: %s" % save_path)
             current_best = mean_test_accuracy
 
         print("")
 
 else:
-    model_name = "./models/conv2_epoch_90.ckpt" # "./models/conv_epoch_540.ckpt"
+    model_name = "./models/big_conv_overnight_epoch_765.ckpt" # after 765 epochs with 0.0005, conv Mon 17:21:49 
     saver.restore(sess, model_name)
     print("Model restored.")
 
@@ -575,7 +584,7 @@ else:
                 sess.run(
                     [Y],
                     feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-                        tst: True, iter: i})
+                        tst: True, iter: i, tst_conv: True})
 
             pred_labels += test_pred
 
@@ -596,10 +605,10 @@ else:
 
         # non_confident_pos = hists_test[pred_labels[:,0] > 0.5][pred_labels[pred_labels[:,0] > 0.5][:,0].argsort()][0:64]
         # non_confident_neg = hists_test[pred_labels[:,1] > 0.5][pred_labels[pred_labels[:,1] > 0.5][:,0].argsort()][0:64]
-        tstimages = (hists_test[false_pos][0:182] + 0.5) * 255.0
+        tstimages = (hists_test[false_pos][0:122] + 0.5) * 255.0
         fig = plt.figure(figsize=(64, 64))  # width, height in inches
-        tstimages = (hists_test[false_neg][0:182] + 0.5) * 255.0
-        for i in range(182):
+        tstimages = (hists_test[false_pos][0:122] + 0.5) * 255.0
+        for i in range(122):
             tstimages[i] = cv2.cvtColor(tstimages[i].astype(np.float32), cv2.COLOR_BGR2RGB)
         misc.imshow(ia.draw_grid(tstimages, cols=13, rows=14))
 
