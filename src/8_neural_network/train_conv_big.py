@@ -152,7 +152,7 @@ W7 = tf.Variable(tf.truncated_normal([P, 2], stddev=2./P))
 B7 = tf.Variable(tf.zeros([2]))
 
 batch_size = 32
-keep_rate_dropout = 0.3
+keep_rate_dropout = 0.1
 keep_prob = tf.placeholder(tf.float32)
 
 # Input placeholder
@@ -252,14 +252,15 @@ accuracy = tf.reduce_mean(tf.cast(is_correct, tf.float32))
 ############################################################################
 # training step
 global_step = tf.Variable(0, trainable=False)
-start_learning_rate = 0.001
+start_learning_rate = 0.0003
+ # was 2500
 learning_rate = tf.cond(tf.less(global_step, 2500), \
-    lambda:0.0001, \
+    lambda:0.00001, \
     lambda:tf.maximum(0.00005, \
         tf.train.exponential_decay(
-            start_learning_rate, global_step, 10000, 0.75, staircase=True)))
+            start_learning_rate, global_step, 50000, 0.75, staircase=True)))
 
-train_step = tf.train.AdamOptimizer(0.0001) \
+train_step = tf.train.AdamOptimizer(learning_rate) \
     .minimize(cross_entropy, global_step=global_step, \
         aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE)
 
@@ -335,7 +336,7 @@ valid_summary_op = tf.summary.merge([acc_summary])
 # saving tensorboard logs
 now = datetime.datetime.time(datetime.datetime.now())
 date = now.strftime("%a %H:%M:%S")
-train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
+train_writer = tf.summary.FileWriter('./logs3/conv ' + date, sess.graph)
 
 ############################################################################
 
@@ -350,41 +351,37 @@ train_writer = tf.summary.FileWriter('./logs2/conv ' + date, sess.graph)
 sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
 imgaug_seq = iaa.Sequential([
-    iaa.OneOf([
-        iaa.Sharpen(alpha=(0, 0.3), lightness=(0.75, 1.0)),
-        iaa.GaussianBlur((0, 3.0)), # blur images with a sigma between 0 and 3.0 
-        iaa.ContrastNormalization((0.5, 2.0), per_channel=0.5),
-    ]),
-    sometimes(
-        iaa.Add((-100, 100), per_channel=0.5), # change brightness of images (by -10 to 10 of original value) 
-    ),
-    iaa.Fliplr(0.5), # horizontally flip 50% of the images 
-    sometimes(iaa.Affine(
-            # scale={"x": (0.8, 1.2), "y": (0.8, 1.2)}, # scale images to 80-120% of their size, individually per axis 
-            # translate_percent={"x": (-0.2, 0.2), "y": (-0.2, 0.2)}, # translate by -20 to +20 percent (per axis) 
-            rotate=(-45, 45), # rotate by -45 to +45 degrees 
-            shear=(-16, 16), # shear by -16 to +16 degrees 
-            order=[0, 1], # use nearest neighbour or bilinear interpolation (fast) 
-            cval=(0, 255), # if mode is constant, use a cval between 0 and 255 
-            mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples) 
-    ))
+    iaa.Sharpen(alpha=(0, 0.1), lightness=(0.75, 1.0)),
+    iaa.ContrastNormalization((1.0, 1.5), per_channel=0.2),
+    iaa.Add((-25, 50), per_channel=0.0), # change brightness of images (by -10 to 10 of original value)
+    iaa.Add((-5, 5), per_channel=1.0), # change brightness of images (by -10 to 10 of original value)
+    iaa.Fliplr(0.5), # horizontally flip 50% of the images
+    iaa.Affine(
+            scale={"x": (0.8, 0.85), "y": (0.8, 0.85)}, # scale images to 80-120% of their size, individually per axis
+            # translate_percent={"x": (-0.05, 0.05), "y": (-0.05, 0.05)}, # translate by -20 to +20 percent (per axis)
+            rotate=(-45, 45), # rotate by -45 to +45 degrees
+            shear=(-2, 2), # shear by -16 to +16 degrees
+            order=[0, 1], # use nearest neighbour or bilinear interpolation (fast)
+            cval=(0, 255), # if mode is constant, use a cval between 0 and 255
+            mode=ia.ALL # use any of scikit-image's warping modes (see 2nd image from the top for examples)
+    )
 ])
 
 # Use this to show augmented images
-fig = plt.figure(figsize=(50, 50))  # width, height in inches
-pos_idx = np.where(labels_train[:,]==1)[0]
-tstimages = hists_train[pos_idx[0:64]]
-for i in range(64):
-    tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
-tstimages = imgaug_seq.augment_images(tstimages)
-misc.imshow(ia.draw_grid(tstimages, cols=8))
+# fig = plt.figure(figsize=(50, 50))  # width, height in inches
+# pos_idx = np.where(labels_train[:,]==1)[0]
+# tstimages = hists_train[pos_idx[0:64]]
+# for i in range(64):
+#     tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
+# tstimages = imgaug_seq.augment_images(tstimages)
+# misc.imshow(ia.draw_grid(tstimages, cols=8))
 
 ############################################################################
 ############## Training loop 
 ############################################################################
 
 if should_train:
-    current_best = 0.0
+    current_best = 0.5
     # Mean accuracy of epoch (766): 0.895221
     # Mean entropy of epoch  (766): 0.903323
     # Test sensitivity: 0.823886635507
@@ -393,7 +390,7 @@ if should_train:
     # Test accuracy of epoch (766): 0.890625
     # Model saved in file: ./models/big_conv_overnight_epoch_765.ckpt
 
-    # model_name = "./models/big_conv_overnight_epoch_765.ckpt" # after 765 epochs with 0.0005, conv Mon 17:21:49 
+    # model_name = "./models/big_conv_overnight_18_11_epoch_60.ckpt"
     # saver.restore(sess, model_name)
     # print("Model restored.")
 
@@ -473,7 +470,7 @@ if should_train:
             train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
                 tst: False, iter: i+j*number_of_runs, tst_conv: False}
 
-            if i % 25 == 0:
+            if i % 5 == 0:
                 summary, weights, pred, batch_accuracy, batch_entropy = \
                     sess.run(
                         [merged, W5, Y, accuracy, cross_entropy],
@@ -553,12 +550,12 @@ if should_train:
         print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
 
         if j % 5 == 0:
-            save_path = saver.save(sess, "./models/big_conv_overnight_epoch_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/big_conv_overnight_18_11_epoch_" + str(j) + ".ckpt")
             print("Model saved in file: %s" % save_path)
-        if mean_test_accuracy > current_best:
-            save_path = saver.save(sess, "./models/big_conv_overnight_epoch2_best_" + str(j) + ".ckpt")
+        if ppv > current_best and mean_test_accuracy > 0.88:
+            save_path = saver.save(sess, "./models/big_conv_overnight_18_11_epoch2_best_" + str(j) + ".ckpt")
             print("Best model saved in file: %s" % save_path)
-            current_best = mean_test_accuracy
+            current_best = ppv
 
         print("")
 
