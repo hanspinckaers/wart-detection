@@ -258,7 +258,7 @@ global_step = tf.Variable(0, trainable=False)
 start_learning_rate = 0.0003
  # was 2500
 learning_rate = tf.cond(tf.less(global_step, 2500), \
-    lambda:0.00001, \
+    lambda:0.000001, \
     lambda:tf.maximum(0.00005, \
         tf.train.exponential_decay(
             start_learning_rate, global_step, 50000, 0.75, staircase=True)))
@@ -455,8 +455,9 @@ if should_train:
         # print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
 
         # Augment the images and normalize
-        hists_epoch = imgaug_seq.augment_images(hists_epoch)
-        hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
+        with tf.device('/cpu:0'):
+            hists_epoch = imgaug_seq.augment_images(hists_epoch)
+            hists_epoch = hists_epoch / 255. - 0.5 # normalize after augmenting
 
         for i in range(number_of_runs.astype(int)):
             batch_begin = int(i*batch_size)
