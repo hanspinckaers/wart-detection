@@ -35,7 +35,7 @@ load_images_from_cache = True
 random.seed(0)
 np.random.seed(0)
 
-if load_images_from_cache == False:
+if load_images_from_cache == True:
     # get all participants in training set to create a per participant ..
     # validation and test set.
     participants = []
@@ -93,21 +93,24 @@ if load_images_from_cache == False:
     # Create a array with labels and concatenate the positive and negative images
     # in one array (here wrongly called "hists"
     labels_train = np.zeros(len(train_set_pos)+len(train_set_neg))
-    labels_train[len(train_set_neg)-1:] = 1
-    hists_train = np.concatenate((train_set_neg, train_set_pos))
+    labels_train[len(train_set_pos):] = 1
+
+    # One-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
+    # For training this is done in the training loop
+    labels_train = (labels_train[:,None] == np.arange(2)).astype(float)
+
+    hists_train = np.concatenate((train_set_pos, train_set_neg))
     print "Size of the original train data: " + str(hists_train.shape)
 
     # Do the same for test set, and normalize the test set
     # Normalization of the training set is done after augmentation in the 
     # training loop.
     labels_test = np.zeros(len(test_set_pos)+len(test_set_neg))
-    labels_test[len(test_set_neg)-1:] = 1
-    hists_test = np.concatenate((test_set_neg, test_set_pos))
-    hists_test = hists_test / 255.0 - 0.5
+    labels_test[len(test_set_pos):] = 1
+    labels_test = (labels_test[:,None] == np.arange(2)).astype(float)
 
-    # One-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
-    # For training this is done in the training loop
-    labels_test = (labels_test[:,None] != np.arange(2)).astype(float)
+    hists_test = np.concatenate((test_set_pos, test_set_neg))
+    hists_test = hists_test / 255.0 - 0.5
 
     np.save("hists_test", hists_test)
     np.save("labels_test", labels_test)
@@ -335,8 +338,8 @@ valid_summary_op = tf.summary.merge([acc_summary])
 
 # saving tensorboard logs
 now = datetime.datetime.time(datetime.datetime.now())
-date = now.strftime("%a %H:%M:%S")
-train_writer = tf.summary.FileWriter('./logs3/conv ' + date, sess.graph)
+date = now.strftime("%H:%M:%S")
+train_writer = tf.summary.FileWriter('./log_ensemble/conv ' + date, sess.graph)
 
 ############################################################################
 
@@ -369,7 +372,7 @@ imgaug_seq = iaa.Sequential([
 
 # Use this to show augmented images
 # fig = plt.figure(figsize=(50, 50))  # width, height in inches
-# pos_idx = np.where(labels_train[:,]==1)[0]
+# pos_idx = np.where(labels_train[:,0]==1)[0]
 # tstimages = hists_train[pos_idx[0:64]]
 # for i in range(64):
 #     tstimages[i] = cv2.cvtColor(tstimages[i], cv2.COLOR_BGR2RGB)
@@ -400,8 +403,8 @@ if should_train:
     p = np.random.permutation(len(hists_test))
     labels_test_shuffled = labels_test[p]
     hists_test_shuffled = hists_test[p]
-    neg_test_idx = np.where(labels_test_shuffled[:,1]==0)[0]
-    pos_test_idx = np.where(labels_test_shuffled[:,1]==1)[0]
+    neg_test_idx = np.where(labels_test_shuffled[:,0]==0)[0]
+    pos_test_idx = np.where(labels_test_shuffled[:,0]==1)[0]
 
     # limit size of positive set (pos > neg)
     if pos_test_idx.shape[0] > neg_test_idx.shape[0]:
@@ -428,8 +431,8 @@ if should_train:
         p = np.random.permutation(len(hists_train))
         hists_epoch = hists_train[p]
         labels_epoch = labels_train[p]
-        neg_idx = np.where(labels_epoch[:,]==0)[0]
-        pos_idx = np.where(labels_epoch[:,]==1)[0]
+        neg_idx = np.where(labels_epoch[:,0]==0)[0]
+        pos_idx = np.where(labels_epoch[:,0]==1)[0]
 
         # Limit size of negative or positive set (depending who is the largest)
         if neg_idx.shape[0] > pos_idx.shape[0]:
@@ -462,15 +465,11 @@ if should_train:
             batch_X = hists_epoch[batch_begin:batch_end]
             batch_Y = labels_epoch[batch_begin:batch_end]
 
-            # Make one-hot array of labels
-            batch_Y = np.squeeze(batch_Y)
-            batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
-
             # Ensemble the training data dict
             train_data = {X: batch_X, Y_: batch_Y, keep_prob: keep_rate_dropout, \
                 tst: False, iter: i+j*number_of_runs, tst_conv: False}
 
-            if i % 5 == 0:
+            if i % 20 == 0:
                 summary, weights, pred, batch_accuracy, batch_entropy = \
                     sess.run(
                         [merged, W5, Y, accuracy, cross_entropy],
@@ -549,84 +548,15 @@ if should_train:
 
         print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
 
-        if j % 5 == 0:
-            save_path = saver.save(sess, "./models/big_conv_overnight_18_11_epoch_" + str(j) + ".ckpt")
-            print("Model saved in file: %s" % save_path)
+        # if j % 5 == 0:
+        #    save_path = saver.save(sess, "./models/ensemble_1_epoch_" + str(j) + ".ckpt")
+        #    print("Model saved in file: %s" % save_path)
         if ppv > current_best and mean_test_accuracy > 0.88:
-            save_path = saver.save(sess, "./models/big_conv_overnight_18_11_epoch2_best_" + str(j) + ".ckpt")
+            save_path = saver.save(sess, "./models/ensemble_1_best_ep_" + str(j) + ".ckpt")
             print("Best model saved in file: %s" % save_path)
             current_best = ppv
 
         print("")
-
-else:
-    model_name = "./models/big_conv_overnight_epoch_765.ckpt" # after 765 epochs with 0.0005, conv Mon 17:21:49 
-    saver.restore(sess, model_name)
-    print("Model restored.")
-
-    for i in range(1):
-        # Run on the test in batches, the network is so large that there is not enough
-        # memory for all the test data at once
-        pred_labels = []
-        number_of_runs = np.ceil(len(hists_test) / batch_size) + 1
-        test_accuracies = []
-        for i in range(number_of_runs.astype(int)):
-            batch_begin = int(i*batch_size)
-            batch_end = int(np.min((i*batch_size+batch_size, len(hists_test))))
-
-            batch_X = hists_test[batch_begin:batch_end]
-            batch_Y = labels_test[batch_begin:batch_end]
-
-            test_pred = \
-                sess.run(
-                    [Y],
-                    feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
-                        tst: True, iter: i, tst_conv: True})
-
-            pred_labels += test_pred
-
-        pred_labels = np.concatenate(pred_labels)
-
-        pred_pos = (np.argmax(pred_labels, axis=1)==0)
-        pred_neg = (np.argmax(pred_labels, axis=1)==1)
-
-        truth_pos = (np.argmax(labels_test, axis=1)==0)
-        truth_neg = (np.argmax(labels_test, axis=1)==1)
-        true_pos = np.intersect1d(np.where(pred_pos), np.where(truth_pos))
-        true_neg = np.intersect1d(np.where(pred_neg), np.where(truth_neg))
-        false_pos = np.intersect1d(np.where(pred_pos), np.where(truth_neg))
-        false_neg = np.intersect1d(np.where(pred_neg), np.where(truth_pos))
-
-        # confident_neg = hists_test[pred_labels[:,0].argsort()][0:64]
-        # confident_pos = hists_test[pred_labels[:,1].argsort()][0:64]
-
-        # non_confident_pos = hists_test[pred_labels[:,0] > 0.5][pred_labels[pred_labels[:,0] > 0.5][:,0].argsort()][0:64]
-        # non_confident_neg = hists_test[pred_labels[:,1] > 0.5][pred_labels[pred_labels[:,1] > 0.5][:,0].argsort()][0:64]
-        tstimages = (hists_test[false_pos][0:122] + 0.5) * 255.0
-        fig = plt.figure(figsize=(64, 64))  # width, height in inches
-        tstimages = (hists_test[false_pos][0:122] + 0.5) * 255.0
-        for i in range(122):
-            tstimages[i] = cv2.cvtColor(tstimages[i].astype(np.float32), cv2.COLOR_BGR2RGB)
-        misc.imshow(ia.draw_grid(tstimages, cols=13, rows=14))
-
-        # fig = plt.figure(figsize=(64, 64))  # width, height in inches
-        # tstimages = (non_confident_pos + 0.5) * 255.0
-        # for i in range(64):
-        #     tstimages[i] = cv2.cvtColor(tstimages[i].astype(np.float32), cv2.COLOR_BGR2RGB)
-        # misc.imshow(ia.draw_grid(tstimages, cols=8))
-
-        sens = len(true_pos) / float(len(true_pos) + len(false_neg))
-        spec = len(true_neg) / float(len(true_neg) + len(false_pos))
-        ppv = len(true_pos) / float(len(true_pos) + len(false_pos))
-        npv = len(true_neg) / float(len(true_neg) + len(false_neg))
-
-        print "Sensitivity: " + str(sens)
-        print "Specifitity: " + str(spec)
-        print "Positive predictive value: " + str(ppv)
-        print "N false pos: " + str(len(false_pos))
-        print "N false neg: " + str(len(false_neg))
-        # false_pos = np.sum(pred_labels[:,0] == test_labels[:,0])
-        # true_neg = np.sum(pred_labels[:,1] test_labels[:,1])
 
 # first model
 ## depth in convolutional layers
