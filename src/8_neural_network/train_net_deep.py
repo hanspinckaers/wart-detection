@@ -13,8 +13,8 @@ labels = labels[:, np.newaxis]
 
 # the data consist of normalized histograms so
 # we can scale it by multiplications
-hists *= 4
-hists_test *= 4
+hists *= 25
+hists_test *= 25
 
 # one-hot the label array ([0, 1, 0] -> [[1, 0], [0, 1], [1, 0]]
 # labels_test = np.squeeze(labels_test)
@@ -102,7 +102,7 @@ tf.summary.scalar('num_pos', num_pos)
 
 # training step, learning rate = 0.003
 global_step = tf.Variable(0, trainable=False)
-starter_learning_rate = .01
+starter_learning_rate = .03
 learning_rate = tf.train.exponential_decay(starter_learning_rate,
     global_step, 100000, 0.99, staircase=True)
 tf.summary.scalar('learning_rate', learning_rate)
@@ -132,17 +132,21 @@ tf.global_variables_initializer().run()
 # make a random test set of the data with 50% pos and 50% neg
 p = np.random.permutation(len(hists_test))
 labels_test_shuffled = labels_test[p]
+hists_test_shuffled = hists_test[p]
 neg_test_idx = np.where(labels_test_shuffled[:,1]==0)[0]
 pos_test_idx = np.where(labels_test_shuffled[:,1]==1)[0]
 
 # limit size of positive set (pos > neg)
-pos_test_idx = pos_test_idx[0:neg_test_idx.shape[0]]
-hists_test = hists_test[np.concatenate((pos_test_idx, neg_test_idx))]
-labels_test = labels_test[np.concatenate((pos_test_idx, neg_test_idx))]
+if pos_test_idx.shape[0] > neg_test_idx.shape[0]:
+    pos_test_idx = pos_test_idx[0:neg_test_idx.shape[0]]
+else:
+    neg_test_idx = neg_test_idx[0:pos_test_idx.shape[0]]
+hists_test = hists_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
+labels_test = labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
 batch_size = 64 # of 64
 
-for j in range(60000):
+for j in range(2000):
     #shuffle data in epochs
     accuracies = []
     entropy = []
@@ -156,6 +160,7 @@ for j in range(60000):
 
     # limit size of pos (pos > neg)
     pos_idx = pos_idx[0:neg_idx.shape[0]]
+
     hists_epoch = hists_epoch[np.concatenate((pos_idx, neg_idx))]
     labels_epoch = labels_epoch[np.concatenate((pos_idx, neg_idx))]
 
@@ -165,6 +170,10 @@ for j in range(60000):
     labels_epoch = labels_epoch[p]
 
     number_of_runs = int(np.floor(len(hists_epoch) / batch_size))
+
+    print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
+    print str(np.sum(np.argmax(labels_test, 1))) + " of " + str(labels_test.shape[0])
+
     for i in range(number_of_runs):
         batch_begin = int(i*batch_size)
         batch_end = int(np.min((i*batch_size+batch_size, len(hists)-1)))
@@ -175,8 +184,10 @@ for j in range(60000):
         # make one-hot array of labels
         batch_Y = np.squeeze(batch_Y)
         batch_Y = (batch_Y[:,None] != np.arange(2)).astype(float)
-
-        train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.5}
+        if learning_rate.eval() < 0.01:
+            train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.2}
+        else:
+            train_data = {X: batch_X, Y_: batch_Y, keep_prob: 0.5}
 
         summary, batch_accuracy, batch_entropy = sess.run(
             [merged, accuracy, cross_entropy],
@@ -210,7 +221,7 @@ for j in range(60000):
 
 #Create a saver object which will save all the variables
 saver = tf.train.Saver()
-save_path = saver.save(sess, "./models/model_5_layer.ckpt")
+save_path = saver.save(sess, "./models/model_6_layer.ckpt")
 print("Model saved in file: %s" % save_path)
 
 # first model:
