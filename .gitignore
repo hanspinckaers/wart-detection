@@ -37,3 +37,7 @@ kmajority
 output_test
 ~*
 .ycm*
+*.DildonT
+*.ckpt.*
+*bhtsne*
+*.ipynb_checkpoints*
