@@ -283,8 +283,9 @@ def predictions_with_set(test_set, vocabulary, model, detector_name='SIFT', desc
     if caching and not os.path.exists(cache_name + ".npy"):
         print "Generating features for test"
         # features = extract_features(test_set, detector_name, descriptor_name, dect_params, n_features)
-        descs, _, indices = hist_using_vocabulary(test_set, vocabulary)
+        descs, _labels, indices = hist_using_vocabulary(test_set, vocabulary)
         np.save(cache_name + "_indices", indices)
+        np.save(cache_name + "_labels", _labels)
         np.save(cache_name, descs)
     else:
         descs = np.load(cache_name + ".npy")
