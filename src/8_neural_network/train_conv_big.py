@@ -83,7 +83,7 @@ if load_images_from_cache == True:
     test_set_pos = []
     test_set_neg = []
     for j, f_ in enumerate(folds):
-        if j == 0:
+        if j == 4:
             test_set_pos = folds[j][0]
             test_set_neg = folds[j][1]
         else:
@@ -393,13 +393,14 @@ if should_train:
     # Test accuracy of epoch (766): 0.890625
     # Model saved in file: ./models/big_conv_overnight_epoch_765.ckpt
 
-    # model_name = "./models/big_conv_overnight_18_11_epoch_60.ckpt"
+    # model_name = "./models/ensemble_2_best_ep_801.ckpt"
     # saver.restore(sess, model_name)
     # print("Model restored.")
 
     ############################################################################
     # Make a random test set of the data with 50% pos and 50% neg
     # Preparation for training loop
+
     p = np.random.permutation(len(hists_test))
     labels_test_shuffled = labels_test[p]
     hists_test_shuffled = hists_test[p]
@@ -412,10 +413,10 @@ if should_train:
     else:
         neg_test_idx = neg_test_idx[0:pos_test_idx.shape[0]]
 
-    hists_test = \
+    hists_test_divided = \
         hists_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
-    labels_test = \
-        labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
+    labels_test_divided = \
+       labels_test_shuffled[np.concatenate((pos_test_idx, neg_test_idx))]
 
     # Finalize graph to catch memory leaks (errors when changing the graph hereafter)
     sess.graph.finalize()
@@ -448,7 +449,7 @@ if should_train:
         p = np.random.permutation(len(hists_epoch))
         hists_epoch = hists_epoch[p]
         labels_epoch = labels_epoch[p]
-        number_of_runs = np.ceil(len(hists_epoch) / batch_size)
+        number_of_runs = np.ceil(len(hists_epoch) / batch_size) + 1
 
         # Test if train and test set are equaly divided
         # print str(np.sum(labels_epoch)) + " of " + str(labels_epoch.shape[0])
@@ -461,7 +462,7 @@ if should_train:
 
         for i in range(number_of_runs.astype(int)):
             batch_begin = int(i*batch_size)
-            batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch)-1)))
+            batch_end = int(np.min((i*batch_size+batch_size, len(hists_epoch))))
 
             batch_X = hists_epoch[batch_begin:batch_end]
             batch_Y = labels_epoch[batch_begin:batch_end]
@@ -500,12 +501,12 @@ if should_train:
 
         # Run on the test in batches, the network is so large that there is not enough
         # memory for all the test data at once
-        number_of_runs = np.ceil(len(hists_test) / batch_size)
-        test_accuracies = []
+        batch_size_labels = 500
+        number_of_runs = np.ceil(len(hists_test) / batch_size_labels) + 1
         pred_labels = np.empty([0,2])
         for i in range(number_of_runs.astype(int)):
-            batch_begin = int(i*batch_size)
-            batch_end = int(np.min((i*batch_size+batch_size, len(hists_test)-1)))
+            batch_begin = int(i*batch_size_labels)
+            batch_end = int(np.min((i*batch_size_labels+batch_size_labels, len(hists_test))))
 
             batch_X = hists_test[batch_begin:batch_end]
             batch_Y = labels_test[batch_begin:batch_end]
@@ -516,8 +517,28 @@ if should_train:
                     feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
                         tst: True, iter: i+j*number_of_runs, tst_conv: True})
 
-            test_accuracies.append(test_accuracy)
             pred_labels = np.concatenate((pred_labels, test_pred))
+
+        #################################################
+        # Run to compare accuracies in graph, also to compare acc of balanced data 
+        # with training data
+        test_accuracies = []
+        number_of_runs = np.ceil(len(hists_test_divided) / batch_size) + 1
+        for i in range(number_of_runs.astype(int)):
+            batch_begin = int(i*batch_size)
+            batch_end = int(np.min((i*batch_size+batch_size, len(hists_test))))
+
+            batch_X = hists_test_divided[batch_begin:batch_end]
+            batch_Y = labels_test_divided[batch_begin:batch_end]
+
+            test_num_pos, test_pred, test_accuracy, test_summary = \
+                sess.run(
+                    [num_pos, Y, accuracy, valid_summary_op],
+                    feed_dict={X: batch_X, Y_: batch_Y, keep_prob: 1.0, \
+                        tst: True, iter: i+j*number_of_runs, tst_conv: True})
+
+            test_accuracies.append(test_accuracy)
+        #################################################
 
         # pred_labels = np.concatenate(pred_labels)
 
@@ -536,6 +557,7 @@ if should_train:
         spec = len(true_neg) / float(len(true_neg) + len(false_pos) + 0.00001)
         ppv = len(true_pos) / float(len(true_pos) + len(false_pos) + 0.00001)
         npv = len(true_neg) / float(len(true_neg) + len(false_neg) + 0.00001)
+        acc = (len(true_pos) + len(true_neg)) / float(len(labels_test) + 0.00001)
 
         print "Test sensitivity: " + str(sens)
         print "Test specifitity: " + str(spec)
@@ -547,13 +569,14 @@ if should_train:
                 simple_value=mean_test_accuracy)])
         train_writer.add_summary(summary, i+j*number_of_runs)
 
-        print("Test accuracy of epoch (" + str(j + 1) + "): " + str(mean_test_accuracy))
+        print("Test accuracy of epoch (" + str(j+1) + "): " + str(mean_test_accuracy)
+              + ', really:' + str(acc))
 
-        # if j % 5 == 0:
-        #    save_path = saver.save(sess, "./models/ensemble_1_epoch_" + str(j) + ".ckpt")
-        #    print("Model saved in file: %s" % save_path)
-        if ppv > current_best and mean_test_accuracy > 0.88:
-            save_path = saver.save(sess, "./models/ensemble_1_best_ep_" + str(j) + ".ckpt")
+        if j % 5 == 0:
+            save_path = saver.save(sess, "./models/ensemble_5_epoch_" + str(j) + ".ckpt")
+            print("Model saved in file: %s" % save_path)
+        if ppv > current_best and acc > 0.9:
+            save_path = saver.save(sess, "./models/ensemble_5_best_ep_" + str(j) + ".ckpt")
             print("Best model saved in file: %s" % save_path)
             current_best = ppv
 

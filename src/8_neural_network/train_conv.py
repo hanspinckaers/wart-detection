@@ -627,7 +627,7 @@ else :
 # test accuracy stabilizes around 86.6%, but reaches 87.3% in the beginning
 # train accuracy is around 96%
 # 200 epochs
-# conv 01 19:15:33
+# conv 01 19:15:33   <--- LIKELY WITHOUT DATA AUG
 
 # fourth model
 # stddev weight 0.03
